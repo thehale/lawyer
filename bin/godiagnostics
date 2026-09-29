@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+#
+# Usage: bin/godiagnostics
+#
+# Fails on anything gopls diagnoses in the Go files, as an editor shows it.
+
+set -euo pipefail
+
+main() {
+	local diagnostics
+	diagnostics="$("$(dirname "${BASH_SOURCE[0]}")/lib/files" --extension go | xargs -r gopls check)"
+
+	if [[ -n "$diagnostics" ]]; then
+		refuse "$diagnostics"
+	fi
+}
+
+refuse() {
+	echo "gopls reports:" >&2
+	echo "$1" >&2
+	exit 1
+}
+
+main "$@"
