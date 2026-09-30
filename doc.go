@@ -13,8 +13,11 @@
 //	violations, err := repository.Check(declaration)
 //	repository.Fix(declaration)
 //
-// If you want to check or fix only some of the files...
+// If you want more granular insight into the violations...
 //
-//	headerViolations, err := repository.Licensables("bin", "install.sh").Check(declaration)
-//	headerChanges, err := repository.Licensables("bin", "install.sh").Fix(declaration)
+//	headerViolations, err := repository.Licensables().Excluding("**/vendor/**").Check(declaration)
+//
+// If you want more granular control over fixes...
+//
+//	headerChanges, err := repository.Licensables().Excluding("**/vendor/**").Fix(declaration)
 package lawyer

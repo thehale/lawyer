@@ -25,6 +25,7 @@ func runCheck(args []string) int {
 type options struct {
 	fix         bool
 	declaration lawyer.Declaration
+	excludes    []lawyer.Glob
 	paths       []string
 }
 
@@ -45,6 +46,8 @@ func (o *options) take(args []string) ([]string, error) {
 		o.paths = append(o.paths, value)
 	case "--fix":
 		o.fix = true
+	case "--exclude":
+		o.excludes = append(o.excludes, lawyer.Glob(value))
 	case "--copyright-owner":
 		err = errors.Join(err, set(&o.declaration.Owner, flag, value))
 	case "--license":
@@ -69,9 +72,9 @@ func (o options) run(repository lawyer.Repository) int {
 
 func (o options) licensables(repository lawyer.Repository) (lawyer.Licensables, error) {
 	if len(o.paths) == 0 {
-		return repository.Licensables(), nil
+		return repository.Licensables().Excluding(o.excludes...), nil
 	} else {
 		targets, pathsErr := paths(o.paths, os.Stdin)
-		return repository.Licensables(append(targets, "")...), pathsErr
+		return repository.Licensables(append(targets, "")...).Excluding(o.excludes...), pathsErr
 	}
 }

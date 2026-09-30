@@ -14,6 +14,10 @@ import (
 // A Path is the path of a file or directory.
 type Path string
 
+// A Glob matches paths, with * within a directory and ** across them, as in
+// "**/vendor/**".
+type Glob string
+
 func (p Path) Printable() Path {
 	if strings.ContainsFunc(string(p), func(r rune) bool { return !unicode.IsPrint(r) }) {
 		return Path(strconv.Quote(string(p)))

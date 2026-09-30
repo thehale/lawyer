@@ -12,6 +12,26 @@ import (
 	"testing"
 )
 
+func TestExcludes(t *testing.T) {
+	isExcluded := Matcher([]Glob{"**/vendor/**", "build/*.go", "docs"})
+	cases := map[Path]bool{
+		"vendor/x.sh":       true,
+		"a/b/vendor/c/d.sh": true,
+		"./vendor/x.sh":     true,
+		"vendors/x.sh":      false,
+		"build/main.go":     true,
+		"build/cmd/main.go": false,
+		"docs":              true,
+		"docs/index.md":     false,
+		"src/vendor.go":     false,
+	}
+	for path, expected := range cases {
+		if isExcluded(path) != expected {
+			t.Errorf("%s excluded: %v, expected %v", path, !expected, expected)
+		}
+	}
+}
+
 func TestWalkSeesWhatGitSees(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)
@@ -23,10 +43,11 @@ func TestWalkSeesWhatGitSees(t *testing.T) {
 	write(t, "vendor/lib.sh", "")
 	runGit(t, "add", ".gitignore", "tracked.sh")
 
-	files, err := FilesUnder(".")
+	all, err := FilesUnder(".")
+	files := slices.DeleteFunc(all, Matcher([]Glob{"**/vendor/**"}))
 	slices.Sort(files)
 
-	if err != nil || !slices.Equal(files, []Path{".gitignore", "tracked.sh", "untracked.sh", "vendor/lib.sh"}) {
+	if err != nil || !slices.Equal(files, []Path{".gitignore", "tracked.sh", "untracked.sh"}) {
 		t.Errorf("got %q, %v", files, err)
 	}
 }

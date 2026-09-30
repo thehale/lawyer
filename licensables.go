@@ -6,6 +6,7 @@ package lawyer
 import (
 	"errors"
 	"iter"
+	"slices"
 
 	"github.com/thehale/lawyer/internal/paths"
 )
@@ -14,6 +15,17 @@ import (
 type Licensables struct {
 	repository Repository
 	paths      []Path
+	globs      []Glob
+}
+
+// A Glob matches paths, with * within a directory and ** across them, as in
+// "**/vendor/**".
+type Glob = paths.Glob
+
+// Excluding leaves out the files any of the globs match.
+func (l Licensables) Excluding(globs ...Glob) Licensables {
+	l.globs = append(slices.Clone(l.globs), globs...)
+	return l
 }
 
 // All yields each licensable in turn, or an error for a path it couldn't
@@ -64,6 +76,11 @@ func (l Licensables) Fix(declaration Declaration) (Changes, error) {
 }
 
 func (l Licensables) files() ([]Path, error) {
+	files, err := l.gather()
+	return slices.DeleteFunc(files, paths.Matcher(l.globs)), err
+}
+
+func (l Licensables) gather() ([]Path, error) {
 	if l.paths == nil {
 		return paths.FilesUnder(l.repository.root)
 	} else {

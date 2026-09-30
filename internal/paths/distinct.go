@@ -4,7 +4,6 @@
 package paths
 
 import (
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -15,8 +14,4 @@ func Distinct(paths []Path) []Path {
 		return strings.Compare(cleanPath(string(a)), cleanPath(string(b)))
 	})
 	return slices.CompactFunc(inOrder, func(a, b Path) bool { return cleanPath(string(a)) == cleanPath(string(b)) })
-}
-
-func cleanPath(path string) string {
-	return strings.TrimPrefix(filepath.ToSlash(filepath.Clean(path)), "./")
 }
