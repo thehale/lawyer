@@ -8,7 +8,7 @@ import "github.com/thehale/lawyer/internal/syntax"
 func init() {
 	syntax.Register(syntax.Language{
 		Name:       "Ruby",
-		Filenames:  []string{"Gemfile"},
+		Filenames:  []string{"Berksfile", "Brewfile", "Capfile", "Dangerfile", "Fastfile", "Gemfile", "Guardfile", "Podfile", "Rakefile", "Steepfile", "Thorfile", "Vagrantfile"},
 		Extensions: []string{"rb", "gemspec", "rake", "ru"},
 		Shebangs:   []string{"ruby"},
 		Comment:    syntax.Hashes,

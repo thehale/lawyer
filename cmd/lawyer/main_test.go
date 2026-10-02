@@ -727,7 +727,7 @@ func TestLanguagesListsEachWithItsFiles(t *testing.T) {
 	got := invoke(t, "", "languages")
 	table := regexp.MustCompile(` {2,}`).ReplaceAllString(got.stdout, "  ")
 
-	if got.code != 0 || !strings.Contains(table, "Bash  .bash .sh #!bash #!sh\n") || !strings.Contains(table, "Ruby  Gemfile .rb .gemspec .rake .ru #!ruby\n") || !strings.Contains(table, "JSON  .json (no header)\n") {
+	if got.code != 0 || !strings.Contains(table, "Bash  .bash .sh #!bash #!sh\n") || !strings.Contains(table, "Dockerfile  Dockerfile .dockerfile\n") || !strings.Contains(table, "JSON  .json (no header)\n") {
 		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
