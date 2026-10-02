@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -659,5 +660,14 @@ func TestRefusedPathsAreQuoted(t *testing.T) {
 
 	if got := invoke(t, "../\x1b[2Jx.sh\n", append([]string{"check", "-"}, mine...)...); !strings.Contains(got.stderr, `"../\x1b[2Jx.sh": outside`) {
 		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestLanguagesListsEachWithItsFiles(t *testing.T) {
+	got := invoke(t, "", "languages")
+	table := regexp.MustCompile(` {2,}`).ReplaceAllString(got.stdout, "  ")
+
+	if got.code != 0 || !strings.Contains(table, "Bash  .bash .sh #!bash #!sh\n") || !strings.Contains(table, "Ruby  Gemfile .rb .gemspec .rake .ru #!ruby\n") || !strings.Contains(table, "JSON  .json (no header)\n") {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }

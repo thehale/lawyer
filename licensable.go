@@ -9,7 +9,6 @@ import (
 
 	"github.com/thehale/lawyer/internal/files"
 	"github.com/thehale/lawyer/internal/header"
-	_ "github.com/thehale/lawyer/internal/languages"
 	"github.com/thehale/lawyer/internal/syntax"
 )
 

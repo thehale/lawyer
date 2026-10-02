@@ -12,9 +12,11 @@ var version = "dev"
 
 const usage = `Usage: lawyer check [--fix] --copyright-owner OWNER --license EXPRESSION
                     [--copyright-year YEARS] [--exclude GLOB]... [PATH... | -]
+       lawyer languages
 
-Checks that files carry a copyright and SPDX header and that the LICENSE
-matches, and --fix writes them.
+check      Checks that files carry a copyright and SPDX header and that the
+           LICENSE matches, and --fix writes them.
+languages  Lists the languages lawyer puts headers in.
 `
 
 func main() {
@@ -25,6 +27,8 @@ func run(args []string) int {
 	switch append(args, "")[0] {
 	case "check":
 		return runCheck(args[1:])
+	case "languages":
+		return listLanguages()
 	case "--help", "-h", "help":
 		fmt.Print(usage)
 		return 0

@@ -15,6 +15,12 @@ func Register(language Language) {
 	languages = append(languages, language)
 }
 
+func KnownLanguages() []Language {
+	return slices.SortedFunc(slices.Values(languages), func(a, b Language) int {
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
+}
+
 func LanguageOf(name, content string) (Language, bool) {
 	base := strings.ToLower(name)
 	interpreter := interpreterOf(firstLine(content))
