@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+#
+# Usage: bin/update-licenses
+
+set -euo pipefail
+
+VERSION="v3.29.0"
+SOURCE="https://raw.githubusercontent.com/spdx/license-list-data/$VERSION"
+LICENSES="$(dirname "${BASH_SOURCE[0]}")/../internal/spdx/texts"
+
+DOWNLOADS=""
+
+main() {
+	if (($# > 0)); then
+		echo "Usage: bin/update-licenses" >&2
+		exit 2
+	fi
+	trap cleanup EXIT
+	DOWNLOADS="$(mktemp -d "${TMPDIR:-/tmp}/licenses.XXXXXX")"
+
+	local ids id
+	ids="$(download json/licenses.json | osi_approved | refuse_unsafe_ids)"
+	for id in $ids; do
+		fetch "$id"
+	done
+	replace_licenses
+}
+
+download() {
+	curl --fail --silent --show-error --location "$SOURCE/$1"
+}
+
+osi_approved() {
+	jq --raw-output '.licenses[] | select(.isOsiApproved and (.isDeprecatedLicenseId | not)) | .licenseId'
+}
+
+refuse_unsafe_ids() {
+	local id
+	while IFS= read -r id; do
+		if [[ ! "$id" =~ ^[A-Za-z0-9][A-Za-z0-9.+-]*$ ]]; then
+			echo "bin/update-licenses: not an SPDX id: $id" >&2
+			exit 1
+		fi
+		echo "$id"
+	done
+}
+
+fetch() {
+	download "text/$1.txt" | trim >"$DOWNLOADS/$1.txt"
+	download "template/$1.template.txt" >"$DOWNLOADS/$1.template.txt"
+}
+
+trim() {
+	sed -E 's/[[:space:]]+$//'
+}
+
+replace_licenses() {
+	rm -f "$LICENSES"/*.txt
+	mv "$DOWNLOADS"/*.txt "$LICENSES/"
+}
+
+cleanup() {
+	if [[ -n "$DOWNLOADS" ]]; then
+		rm -rf "$DOWNLOADS"
+	fi
+}
+
+main "$@"
