@@ -71,6 +71,19 @@ func FrontMatter(top Top) int {
 	}
 }
 
+var magicComment = regexp.MustCompile(`^#\s*(?:-\*-\s*)?(?:frozen_string_literal|warn_indent|shareable_constant_value|typed):`)
+
+func MagicComments(top Top) int {
+	rest := top.Rest()
+	comments := leadingMatches(rest, magicComment)
+
+	if comments > 0 && comments < len(rest) && strings.TrimSpace(rest[comments]) == "" {
+		return comments + 1
+	} else {
+		return comments
+	}
+}
+
 var directive = regexp.MustCompile(`(?i)^#\s*(?:syntax|escape|check)\s*=`)
 
 func Directives(top Top) int {

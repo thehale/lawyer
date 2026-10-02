@@ -12,6 +12,6 @@ func init() {
 		Extensions: []string{"rb", "gemspec", "rake", "ru"},
 		Shebangs:   []string{"ruby"},
 		Comment:    syntax.Hashes,
-		Prolog:     []syntax.Prolog{syntax.Shebang, syntax.Rack, syntax.Encoding},
+		Prolog:     []syntax.Prolog{syntax.Shebang, syntax.Rack, syntax.Encoding, syntax.MagicComments},
 	})
 }

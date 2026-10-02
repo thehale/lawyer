@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MIT
+
+require "json"
+--------------------------------------------------------------------------------
+# frozen_string_literal: true
+
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+require "json"
