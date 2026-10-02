@@ -13,8 +13,8 @@ import (
 	"github.com/thehale/lawyer/internal/syntax"
 )
 
-// A Header is the copyright line and license identifier at the top of a
-// file, and the comment lines they sit in.
+// A Header is the copyright line and license identifier or notice at the top
+// of a file, and the comment lines they sit in.
 type Header struct {
 	language syntax.Language
 	doc      document
@@ -45,7 +45,7 @@ func Read(language syntax.Language, content string) Header {
 // IsCanonical reports whether the header is a copyright line and an identifier
 // line alone, written in its language's standard form.
 func (h Header) IsCanonical() bool {
-	return h.copyrightOf("") != nil && h.identity() != nil && h.region("").isExactly(h.Lines())
+	return h.copyrightOf("") != nil && h.identity() != nil && h.notice() == nil && h.region("").isExactly(h.Lines())
 }
 
 // Canonical is the header expectation calls for, keeping what this header's
@@ -78,12 +78,12 @@ func (h Header) ContentWith(replacement Header) string {
 // Violations are how the header falls short of expectation.
 func (h Header) Violations(expectation Expectation) []string {
 	owner := expectation.Copyright.Owner
-	violations := slices.Concat(h.copyrightViolations(expectation), h.identityViolations(expectation))
+	violations := slices.Concat(h.copyrightViolations(expectation), h.identityViolations(expectation), h.noticeViolations(expectation))
 
 	switch {
 	case h.ContentWith(h.Canonical(expectation)) == h.doc.String():
 		return nil
-	case h.copyrightOf(owner) == nil && h.identity() == nil:
+	case h.copyrightOf(owner) == nil && h.identity() == nil && h.notice() == nil:
 		return []string{"missing header"}
 	case violations == nil:
 		return []string{"header isn't in the standard form"}
@@ -98,6 +98,10 @@ func (h Header) copyrightOf(owner string) *detect.Copyright {
 
 func (h Header) identity() *detect.Identifier {
 	return first(h.claims, anyClaim[detect.Identifier])
+}
+
+func (h Header) notice() *detect.Notice {
+	return first(h.claims, anyClaim[detect.Notice])
 }
 
 func (h Header) region(owner string) region {
@@ -125,12 +129,27 @@ func (h Header) identityViolations(expectation Expectation) []string {
 	identity := h.identity()
 
 	switch {
+	case identity == nil && h.notice() != nil:
+		return nil
 	case identity == nil:
 		return []string{"missing SPDX-License-Identifier"}
 	case identity.License != expectation.License:
 		return []string{fmt.Sprintf("expected %s, found %s", expectation.License, identity.License)}
 	default:
 		return nil
+	}
+}
+
+func (h Header) noticeViolations(expectation Expectation) []string {
+	notice := h.notice()
+
+	switch {
+	case notice == nil:
+		return nil
+	case notice.License == expectation.License:
+		return []string{fmt.Sprintf("%s notice in place of an SPDX-License-Identifier line", notice.License)}
+	default:
+		return []string{fmt.Sprintf("expected %s, found the %s notice", expectation.License, notice.License)}
 	}
 }
 

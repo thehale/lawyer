@@ -664,6 +664,28 @@ func TestRefusedPathsAreQuoted(t *testing.T) {
 	}
 }
 
+func TestRewritingANoticeIsNotAnEdit(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 - 2024 Joseph Hale
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+echo
+`)})
+	writeLicense(t)
+
+	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	again := invoke(t, "", append([]string{"check"}, mine...)...)
+	content, _ := os.ReadFile("a.sh")
+
+	if fix.code != 0 || again.code != 0 || !strings.HasPrefix(string(content), "# Copyright (c) 2024 Joseph Hale\n# SPDX-License-Identifier: MPL-2.0\n\necho") {
+		t.Errorf("fix: %q; check after: %q; file: %q", fix.stderr, again.stderr, content)
+	}
+}
+
 func TestLanguagesListsEachWithItsFiles(t *testing.T) {
 	got := invoke(t, "", "languages")
 	table := regexp.MustCompile(` {2,}`).ReplaceAllString(got.stdout, "  ")

@@ -127,8 +127,52 @@ func groups(matcher *regexp.Regexp, text string) map[string]string {
 }
 
 // Searcher finds the template's text anywhere within a longer text.
+func (t template) Searcher() *regexp.Regexp {
+	return regexp.MustCompile("(?i)(?:^| )" + t.source(nil, "") + "(?: |$)")
+}
+
 // WithOptionalCopyright makes a top-level copyright variable optional, along
 // with the "Copyright" or "Copyright (c)" before it.
+func (t template) WithOptionalCopyright() template {
+	var parts []part
+	for _, each := range t.parts {
+		parts = withOptional(parts, each)
+	}
+	return template{parts: parts}
+}
+
+func withOptional(parts []part, next part) []part {
+	copyright, isVariable := next.(*variable)
+	before, follows := last[literal](parts)
+	key := copyrightKey(before.words)
+
+	if isVariable && copyright.name == "copyright" && follows && key != "" {
+		prefix := strings.TrimSpace(strings.TrimSuffix(before.words, key))
+		return append(parts[:len(parts)-1], literal{words: prefix}, optional{parts: []part{literal{words: key}, copyright}})
+	} else {
+		return append(parts, next)
+	}
+}
+
+func copyrightKey(words string) string {
+	for _, key := range []string{"copyright c", "copyright"} {
+		if words == key || strings.HasSuffix(words, " "+key) {
+			return key
+		}
+	}
+	return ""
+}
+
+func last[T part](parts []part) (T, bool) {
+	var zero T
+	if len(parts) == 0 {
+		return zero, false
+	} else {
+		typed, ok := parts[len(parts)-1].(T)
+		return typed, ok
+	}
+}
+
 func (t template) source(slot *variable, copyright string) string {
 	return sourceOf(t.parts, slot, copyright)
 }

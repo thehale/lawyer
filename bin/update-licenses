@@ -50,10 +50,18 @@ refuse_unsafe_ids() {
 fetch() {
 	download "text/$1.txt" | trim >"$DOWNLOADS/$1.txt"
 	download "template/$1.template.txt" >"$DOWNLOADS/$1.template.txt"
+	download "json/details/$1.json" | notice | trim >"$DOWNLOADS/$1.notice.txt"
+	if [[ ! -s "$DOWNLOADS/$1.notice.txt" ]]; then
+		rm "$DOWNLOADS/$1.notice.txt"
+	fi
 }
 
 trim() {
 	sed -E 's/[[:space:]]+$//'
+}
+
+notice() {
+	jq --raw-output '.standardLicenseHeaderTemplate // empty | select(. != "")'
 }
 
 replace_licenses() {

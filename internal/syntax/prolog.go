@@ -119,8 +119,12 @@ func hasLicenseClaim(lines []string) bool {
 		texts = append(texts, Mixed.Text(line))
 	}
 	return slices.ContainsFunc(detect.ClaimsIn(texts), func(claim detect.Claim) bool {
-		_, isIdentifier := claim.(detect.Identifier)
-		return isIdentifier
+		switch claim.(type) {
+		case detect.Identifier, detect.Notice:
+			return true
+		default:
+			return false
+		}
 	})
 }
 

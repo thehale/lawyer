@@ -5,3 +5,8 @@ package spdx
 
 // An ID is an SPDX short identifier, such as "MPL-2.0".
 type ID string
+
+// Expression is the license expression naming only this license.
+func (id ID) Expression() Expression {
+	return Expression(id)
+}
