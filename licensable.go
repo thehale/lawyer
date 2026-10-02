@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"os"
 
+	"github.com/thehale/lawyer/internal/files"
 	"github.com/thehale/lawyer/internal/header"
 	_ "github.com/thehale/lawyer/internal/languages"
 	"github.com/thehale/lawyer/internal/syntax"
@@ -48,6 +49,16 @@ func (l Licensable) Header() Header {
 // Violations are how the licensable's header falls short of declaration.
 func (l Licensable) Violations(declaration Declaration) []Violation {
 	return violationsAt(l.path, l.header.Violations(declaration.headerExpectation(l))...)
+}
+
+// ReplaceHeader writes replacement in place of the licensable's header.
+func (l Licensable) ReplaceHeader(replacement Header) (Changes, error) {
+	return fixOf(l.path, files.Replace(l.path, l.content, l.header.ContentWith(replacement)))
+}
+
+// Fix replaces the licensable's header with the one declaration calls for.
+func (l Licensable) Fix(declaration Declaration) (Changes, error) {
+	return l.ReplaceHeader(declaration.HeaderFor(l))
 }
 
 func readSource(path Path) (string, syntax.Language, error) {

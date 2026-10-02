@@ -21,6 +21,10 @@ func (p Path) Printable() Path {
 	}
 }
 
+func (p Path) Child(name string) Path {
+	return Path(filepath.Join(string(p), name))
+}
+
 func (p Path) Base() string {
 	return filepath.Base(string(p))
 }

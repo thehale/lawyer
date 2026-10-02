@@ -31,6 +31,12 @@ func (d Declaration) Validate() error {
 	return errors.Join(d.ownerProblem(), d.licenseProblem())
 }
 
+// HeaderFor is the header d calls for in licensable, keeping the years its
+// current header gives where d allows them.
+func (d Declaration) HeaderFor(licensable Licensable) Header {
+	return licensable.header.Canonical(d.headerExpectation(licensable))
+}
+
 func (d Declaration) ownerProblem() error {
 	switch {
 	case d.Owner == "":

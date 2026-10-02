@@ -10,6 +10,13 @@ import (
 	"github.com/thehale/lawyer"
 )
 
+func printChanges(changes lawyer.Changes, err error) int {
+	for _, path := range changes.Fixed {
+		fmt.Printf("%s: fixed\n", path)
+	}
+	return printError(err)
+}
+
 func printViolations(violations []lawyer.Violation, err error) int {
 	for _, violation := range violations {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", violation.Path, violation.Message)

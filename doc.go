@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Joseph Hale
 // SPDX-License-Identifier: MPL-2.0
 
-// Package lawyer checks the copyright and SPDX license headers of a
+// Package lawyer checks and fixes the copyright and SPDX license headers of a
 // repository's files.
 //
 // A Declaration says who owns the copyright and under which license. A
@@ -11,4 +11,5 @@
 //	repository := lawyer.NewRepository(".")
 //
 //	violations, err := repository.Licensables("install.sh").Check(declaration)
+//	changes, err := repository.Licensables("install.sh").Fix(declaration)
 package lawyer

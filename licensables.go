@@ -43,3 +43,19 @@ func (l Licensables) Check(declaration Declaration) ([]Violation, error) {
 	}
 	return violations, errors.Join(failures...)
 }
+
+// Fix replaces each header that falls short of declaration with the one it
+// calls for.
+func (l Licensables) Fix(declaration Declaration) (Changes, error) {
+	var changes Changes
+	failures := []error{declaration.Validate()}
+	for licensable, err := range l.All() {
+		if err == nil && licensable.Violations(declaration) != nil {
+			var fix Changes
+			fix, err = licensable.Fix(declaration)
+			changes = changes.Union(fix)
+		}
+		failures = append(failures, err)
+	}
+	return changes, errors.Join(failures...)
+}

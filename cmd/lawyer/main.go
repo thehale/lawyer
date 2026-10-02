@@ -10,9 +10,10 @@ import (
 
 var version = "dev"
 
-const usage = `Usage: lawyer check --copyright-owner OWNER --license EXPRESSION [PATH...]
+const usage = `Usage: lawyer check [--fix] --copyright-owner OWNER --license EXPRESSION
+                    [PATH...]
 
-Checks that files carry a copyright and SPDX header.
+Checks that files carry a copyright and SPDX header, and --fix writes them.
 `
 
 func main() {

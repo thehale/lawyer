@@ -17,6 +17,8 @@ func nextOption(args []string) (flag, value string, rest []string, err error) {
 	switch {
 	case !strings.HasPrefix(flag, "--"):
 		return "", args[0], args[1:], nil
+	case inline && flag == "--fix":
+		return flag, "", nil, fmt.Errorf("%s takes no value", flag)
 	case inline || !slices.Contains(valueOptions, flag):
 		return flag, value, args[1:], nil
 	case len(args) > 1:

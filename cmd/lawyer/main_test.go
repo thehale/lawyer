@@ -76,7 +76,7 @@ func must[T any](value T, err error) T {
 var mine = []string{"--copyright-owner", "Joseph Hale", "--license", "MPL-2.0"}
 
 func TestUsage(t *testing.T) {
-	for _, args := range [][]string{{}, {"check"}, {"check", "--license", "MIT"}, {"check", "--bogus"}, {"check", "--license"}, append([]string{"check", "--license", "MIT"}, mine...)} {
+	for _, args := range [][]string{{}, {"check"}, {"check", "--license", "MIT"}, {"check", "--bogus"}, {"check", "--license"}, append([]string{"check", "--fix=never"}, mine...), append([]string{"check", "--license", "MIT"}, mine...)} {
 		if got := invoke(t, "", args...); got.code != 2 || !strings.Contains(got.stderr, "Usage:") {
 			t.Errorf("%q: exit %d, stderr %q", args, got.code, got.stderr)
 		}
@@ -91,10 +91,46 @@ func TestMissingFileFails(t *testing.T) {
 	}
 }
 
+func TestFixKeepsTheFileMode(t *testing.T) {
+	createProject(t, map[string]string{"run.sh": "echo\n"})
+	_ = os.Chmod("run.sh", 0o750)
+
+	invoke(t, "", append([]string{"check", "--fix", "run.sh"}, mine...)...)
+	info, _ := os.Stat("run.sh")
+
+	if info.Mode().Perm() != 0o750 {
+		t.Errorf("mode %v", info.Mode())
+	}
+}
+
+func TestAFailedWriteIsNotReportedAsFixed(t *testing.T) {
+	createProject(t, map[string]string{"locked/a.sh": "echo\n"})
+	_ = os.Chmod("locked", 0o555)
+	t.Cleanup(func() { _ = os.Chmod("locked", 0o755) })
+	if os.WriteFile("locked/probe", nil, 0o644) == nil {
+		t.Skip("the directory is still writable, as it is for root")
+	}
+
+	got := invoke(t, "", append([]string{"check", "--fix", "locked/a.sh"}, mine...)...)
+	kept, _ := os.ReadFile("locked/a.sh")
+
+	if got.code != 1 || got.stdout != "" || string(kept) != "echo\n" {
+		t.Errorf("exit %d, stdout %q, file %q", got.code, got.stdout, kept)
+	}
+}
+
 func TestAnOwnerSpanningLinesIsAUsageError(t *testing.T) {
 	createProject(t, nil)
 
 	if got := invoke(t, "", "check", "--copyright-owner", "Acme\nrm -rf /", "--license", "MIT"); got.code != 2 {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestLateNullBytesStillMarkABinary(t *testing.T) {
+	createProject(t, map[string]string{"asset.sh": strings.Repeat("a", 9000) + "\x00payload"})
+
+	if got := invoke(t, "", append([]string{"check", "--fix", "asset.sh"}, mine...)...); got.stdout != "" {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
