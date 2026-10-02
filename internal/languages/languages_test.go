@@ -57,11 +57,19 @@ func TestShebangs(t *testing.T) {
 		"#!/usr/bin/env bash":        "Bash",
 		"#!/bin/sh":                  "Bash",
 		"#!/usr/bin/env -S bash -eu": "Bash",
+		"#!/usr/bin/python3":         "Python",
+		"#!/usr/bin/env ruby":        "Ruby",
 	}
 	for line, name := range cases {
 		if language := languageOf(t, "bin/tool", line+"\n"); language.Name != name {
 			t.Errorf("%s detected as %q, expected %q", line, language.Name, name)
 		}
+	}
+}
+
+func TestJSONHasNoHeader(t *testing.T) {
+	if languageOf(t, "package.json", "{}").HasHeader() {
+		t.Error("JSON has a header")
 	}
 }
 

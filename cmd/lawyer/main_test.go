@@ -66,6 +66,10 @@ func writeLicense(t *testing.T) {
 	}
 }
 
+func text(example string) string {
+	return strings.TrimPrefix(example, "\n")
+}
+
 func must[T any](value T, err error) T {
 	if err != nil {
 		panic(err)
@@ -87,6 +91,17 @@ func TestMissingFileFails(t *testing.T) {
 	createProject(t, nil)
 
 	if got := invoke(t, "", append([]string{"check", "gone.sh"}, mine...)...); got.code != 1 {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestShebangAfterAByteOrderMark(t *testing.T) {
+	createProject(t, map[string]string{"tool": "\ufeff" + text(`
+#!/usr/bin/env python3
+print()
+`)})
+
+	if got := invoke(t, "", append([]string{"check", "tool"}, mine...)...); !strings.Contains(got.stderr, "tool: missing header") {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
 }

@@ -1,0 +1,10 @@
+# A tool
+# -*- coding: latin-1 -*-
+print()
+--------------------------------------------------------------------------------
+# A tool
+# -*- coding: latin-1 -*-
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+print()

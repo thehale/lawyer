@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+--------------------------------------------------------------------------------
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+source "https://rubygems.org"

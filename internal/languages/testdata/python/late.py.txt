@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# ordinary comment
+# coding: latin-1
+print()
+--------------------------------------------------------------------------------
+#!/usr/bin/env python3
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+# ordinary comment
+# coding: latin-1
+print()

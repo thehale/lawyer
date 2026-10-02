@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+run();
+--------------------------------------------------------------------------------
+#!/usr/bin/env node
+/*
+ * Copyright (c) 2026 Joseph Hale
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+run();

@@ -1,0 +1,6 @@
+@echo off
+--------------------------------------------------------------------------------
+@rem Copyright (c) 2026 Joseph Hale
+@rem SPDX-License-Identifier: MPL-2.0
+
+@echo off
