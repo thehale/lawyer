@@ -62,6 +62,8 @@ bin/ci --fix  # Fix what can be fixed automatically
 Each language has its own file in [internal/languages](internal/languages).
 License texts come from SPDX into
 [internal/spdx/texts](internal/spdx/texts) through `bin/update-licenses`.
+The [add-a-language](.agents/skills/add-a-language/SKILL.md) skill walks
+through adding a language.
 
 ## License
 
