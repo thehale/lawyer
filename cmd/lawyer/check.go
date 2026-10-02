@@ -52,6 +52,8 @@ func (o *options) take(args []string) ([]string, error) {
 		err = errors.Join(err, set(&o.declaration.Owner, flag, value))
 	case "--license":
 		err = errors.Join(err, set(&o.declaration.License, flag, value))
+	case "--copyright-year":
+		err = errors.Join(err, set(&o.declaration.Years, flag, value))
 	default:
 		err = fmt.Errorf("unknown option %s", flag)
 	}
@@ -60,6 +62,7 @@ func (o *options) take(args []string) ([]string, error) {
 
 func (o options) run(repository lawyer.Repository) int {
 	licensables, pathsErr := o.licensables(repository)
+	printWarnings(repository.Warnings(o.declaration))
 
 	if o.fix {
 		changes, err := licensables.Fix(o.declaration)

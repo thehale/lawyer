@@ -48,3 +48,15 @@ func firstLine(content string) string {
 	line, _, _ := strings.Cut(strings.TrimPrefix(content, ByteOrderMark), "\n")
 	return line
 }
+
+// CommentText is a line's text without the comment syntax of any language
+// lawyer knows, for a line whose language isn't known.
+func CommentText(line string) string {
+	content := strings.TrimSpace(line)
+	for _, language := range languages {
+		if text := language.Text(line); language.HasHeader() && text != content {
+			return text
+		}
+	}
+	return content
+}

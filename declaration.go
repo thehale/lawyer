@@ -5,21 +5,26 @@ package lawyer
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/thehale/lawyer/internal/copyright"
 	"github.com/thehale/lawyer/internal/header"
+	"github.com/thehale/lawyer/internal/history"
 	"github.com/thehale/lawyer/internal/spdx"
 	"github.com/thehale/lawyer/internal/years"
 )
 
 // A Declaration is what every Licensable's header must say: who owns the
-// copyright, and under which license.
+// copyright, under which license, and for which years.
 type Declaration struct {
 	// Owner is the copyright holder as it should appear, on one line, such as
 	// "Joseph Hale".
 	Owner   string
 	License Expression
+	// Years is the year or range every header must state, such as
+	// "2024-2026". Left empty, each file's years come from its git history.
+	Years string
 }
 
 // An Expression is an SPDX license expression, such as "MPL-2.0" or
@@ -28,7 +33,8 @@ type Expression = spdx.Expression
 
 // Validate reports what is wrong with the Declaration, or nil when nothing is.
 func (d Declaration) Validate() error {
-	return errors.Join(d.ownerProblem(), d.licenseProblem())
+	_, yearsErr := d.span()
+	return errors.Join(d.ownerProblem(), d.licenseProblem(), yearsErr)
 }
 
 // HeaderFor is the header d calls for in licensable, keeping the years its
@@ -56,6 +62,33 @@ func (d Declaration) licenseProblem() error {
 	}
 }
 
-func (d Declaration) headerExpectation(Licensable) header.Expectation {
-	return header.Expectation{Copyright: copyright.Expectation{Owner: d.Owner, Years: years.InThePast(years.This())}, License: d.License}
+func (d Declaration) span() (years.Range, error) {
+	span, err := years.RangeOf(d.Years)
+
+	switch {
+	case d.Years == "":
+		return years.Range{}, nil
+	case err != nil:
+		return years.Range{}, fmt.Errorf("years: %w", err)
+	default:
+		return span, nil
+	}
+}
+
+func (d Declaration) headerExpectation(licensable Licensable) header.Expectation {
+	history := licensable.repository.history
+	return header.Expectation{Copyright: d.copyright(history, history.EditYears(licensable.path)), License: d.License}
+}
+
+func (d Declaration) copyright(history history.History, editYears years.Range) copyright.Expectation {
+	span, _ := d.span()
+
+	switch {
+	case d.Years != "":
+		return copyright.Expectation{Owner: d.Owner, Years: years.Exactly(span)}
+	case history.IsEveryEditDated():
+		return copyright.Expectation{Owner: d.Owner, Years: years.Exactly(editYears)}
+	default:
+		return copyright.Expectation{Owner: d.Owner, Years: years.InThePast(editYears)}
+	}
 }

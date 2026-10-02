@@ -4,11 +4,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 var binary string
@@ -65,6 +68,24 @@ func git(t *testing.T, date string, args ...string) {
 		t.Fatalf("git %v: %v\n%s", args, err, output)
 	}
 }
+
+func commit(t *testing.T, year string, files map[string]string) {
+	for path, content := range files {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	git(t, year+"-06-01T12:00:00Z", "add", ".")
+	git(t, year+"-06-01T12:00:00Z", "commit", "--quiet", "--message", year)
+}
+
+func createRepository(t *testing.T) {
+	createProject(t, nil)
+	_ = os.Remove("LICENSE")
+	git(t, "", "init", "--quiet")
+}
+
+var this = strconv.Itoa(time.Now().Year())
 
 var mpl = must(os.ReadFile(filepath.Join("..", "..", "LICENSE")))
 
@@ -155,6 +176,125 @@ func TestMissingFileFails(t *testing.T) {
 	}
 }
 
+func TestYearsSpanTheEdits(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	commit(t, "2026", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 2
+`)})
+	writeLicense(t)
+
+	check := invoke(t, "", append([]string{"check"}, mine...)...)
+	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	content, _ := os.ReadFile("a.sh")
+
+	if check.stderr != "a.sh: years 2024, expected 2024-2026\n" || fix.code != 0 || !strings.HasPrefix(string(content), "# Copyright (c) 2024-2026 Joseph Hale\n") {
+		t.Errorf("check: %q; fix: exit %d, %q; file: %q", check.stderr, fix.code, fix.stderr, content)
+	}
+}
+
+func TestHeaderOnlyCommitsAreNotEdits(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestUncommittedEditsCountAsThisYear(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	project := map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 2
+`), "new.sh": "echo\n"}
+	for path, content := range project {
+		_ = os.WriteFile(path, []byte(content), 0o644)
+	}
+
+	writeLicense(t)
+	got := invoke(t, "", append([]string{"check"}, mine...)...)
+
+	expected := fmt.Sprintf(text(`
+a.sh: years 2024, expected 2024-%s
+new.sh: missing header
+`), this)
+
+	if got.stderr != expected {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestShallowClonesOnlyCheckYearsArePast(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
+	commit(t, "2026", map[string]string{"a.sh": text(`
+# Copyright (c) 2020 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 2
+`)})
+	origin := must(os.Getwd())
+	t.Chdir(t.TempDir())
+	git(t, "", "clone", "--quiet", "--depth=1", "file://"+origin, ".")
+	writeLicense(t)
+
+	got := invoke(t, "", append([]string{"check"}, mine...)...)
+
+	if got.code != 0 || got.stderr != "lawyer: this clone is shallow, so years are only checked for being in the past\n" {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestGivenYearsOverrideHistory(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+
+	writeLicense(t)
+	got := invoke(t, "", append([]string{"check", "--copyright-year", "2020-2021"}, mine...)...)
+
+	if got.stderr != "a.sh: years 2024, expected 2020-2021\n" {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestOutsideGitWarns(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": headed})
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 || !strings.Contains(got.stderr, "not a git checkout") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
 	outside := filepath.Join(t.TempDir(), "outside.sh")
 	_ = os.WriteFile(outside, []byte("echo\n"), 0o644)
@@ -215,6 +355,48 @@ func TestAFailedWriteIsNotReportedAsFixed(t *testing.T) {
 	}
 }
 
+func TestCommentsThatMentionCopyrightAreEdits(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+# Copyright (c) notices are printed in one pass
+`)})
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+# Copyright (c) notices are printed in two passes
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024, expected 2024-2025\n" {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestFutureCommitDatesAreIgnored(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	commit(t, "2099", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 2
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestAnOwnerSpanningLinesIsAUsageError(t *testing.T) {
 	createProject(t, nil)
 
@@ -232,6 +414,101 @@ bad.sh
 `), append([]string{"check", "-"}, mine...)...)
 
 	if got.code != 1 || !strings.Contains(got.stderr, "bad.sh: missing header") || !strings.Contains(got.stderr, "outside the repository") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestMergeResolutionsAreEdits(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024-2025 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo base
+`)})
+	git(t, "", "branch", "--quiet", "side")
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024-2025 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo main
+`)})
+	git(t, "", "checkout", "--quiet", "side")
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024-2025 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo side
+`)})
+	git(t, "", "checkout", "--quiet", "-")
+	merge := exec.Command("git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "merge", "--quiet", "side")
+	_ = merge.Run()
+	commit(t, "2026", map[string]string{"a.sh": text(`
+# Copyright (c) 2024-2025 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo resolved
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024-2025, expected 2024-2026\n" {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestProseAfterAnIdentifierIsAnEdit(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+# SPDX-License-Identifier: MIT needs a note
+`)})
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+# SPDX-License-Identifier: MIT needs a clearer note
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024, expected 2024-2025\n" {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestSourcesMarkedBinaryKeepTheirHistory(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{".gitattributes": "*.sh binary\n", "a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	commit(t, "2025", map[string]string{"a.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 2
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, "a.sh: years 2024, expected 2024-2025") {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestNamesLikePathspecMagicKeepTheirHistory(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{":(exclude)odd.sh": text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)})
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
 }

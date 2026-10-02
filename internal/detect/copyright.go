@@ -12,6 +12,10 @@ type Copyright struct {
 	Statement copyright.Statement
 }
 
+func (c Copyright) IsComplete() bool {
+	return c.Statement.HasYear()
+}
+
 func init() {
 	Register(func(lines []string) []Claim {
 		var claims []Claim

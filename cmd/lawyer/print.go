@@ -17,6 +17,12 @@ func printChanges(changes lawyer.Changes, err error) int {
 	return printError(err)
 }
 
+func printWarnings(warnings []string) {
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "lawyer: %s\n", warning)
+	}
+}
+
 func printViolations(violations []lawyer.Violation, err error) int {
 	for _, violation := range violations {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", violation.Path, violation.Message)

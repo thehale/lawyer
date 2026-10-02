@@ -11,7 +11,7 @@ import (
 var version = "dev"
 
 const usage = `Usage: lawyer check [--fix] --copyright-owner OWNER --license EXPRESSION
-                    [--exclude GLOB]... [PATH... | -]
+                    [--copyright-year YEARS] [--exclude GLOB]... [PATH... | -]
 
 Checks that files carry a copyright and SPDX header, and --fix writes them.
 `

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var valueOptions = []string{"--copyright-owner", "--license", "--exclude"}
+var valueOptions = []string{"--copyright-owner", "--license", "--copyright-year", "--exclude"}
 
 func nextOption(args []string) (flag, value string, rest []string, err error) {
 	flag, value, inline := strings.Cut(args[0], "=")

@@ -15,6 +15,10 @@ type Identifier struct {
 	License spdx.Expression
 }
 
+func (i Identifier) IsComplete() bool {
+	return i.License.IsWellFormed()
+}
+
 var identifierLine = regexp.MustCompile(`^SPDX-License-Identifier:\s*(.*)$`)
 
 func init() {

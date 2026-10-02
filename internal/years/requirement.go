@@ -11,6 +11,27 @@ type Requirement interface {
 	Replacement(written Range, readErr error) Range
 }
 
+type exactly struct {
+	years Range
+}
+
+// Exactly requires the years to be these.
+func Exactly(years Range) Requirement {
+	return exactly{years: years}
+}
+
+func (e exactly) Violation(current Range) error {
+	if current != e.years {
+		return fmt.Errorf("years %s, expected %s", current, e.years)
+	} else {
+		return nil
+	}
+}
+
+func (e exactly) Replacement(Range, error) Range {
+	return e.years
+}
+
 type past struct {
 	fallback Range
 }

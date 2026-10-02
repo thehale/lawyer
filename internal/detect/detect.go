@@ -12,6 +12,9 @@ import (
 // license.
 type Claim interface {
 	HasLine(index int) bool
+	// IsComplete reports whether the claim has every part its kind needs, such
+	// as a copyright's years.
+	IsComplete() bool
 	start() int
 }
 

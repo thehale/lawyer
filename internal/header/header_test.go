@@ -93,6 +93,15 @@ echo
 			expectation: expectation,
 		},
 		{
+			name: "exact years",
+			content: `
+# Copyright (c) 2020 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+`,
+			expectation: withExactYears(expectation),
+			violations:  []string{"years 2020, expected 2026"},
+		},
+		{
 			name: "copywrite's shape",
 			content: `
 # Copyright (c) Joseph Hale, 2026
@@ -137,6 +146,27 @@ echo
 			}
 		})
 	}
+}
+
+func TestFixWritesExactYears(t *testing.T) {
+	existing := Read(bash(t), text(`
+# Copyright (c) 2020 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+`))
+	content := existing.ContentWith(existing.Canonical(withExactYears(expectation)))
+	after := text(`
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+`)
+
+	if content != after {
+		t.Errorf("got\n%s\nwant\n%s", content, after)
+	}
+}
+
+func withExactYears(header Expectation) Expectation {
+	header.Copyright.Years = years.Exactly(years.Only(2026))
+	return header
 }
 
 func text(example string) string {

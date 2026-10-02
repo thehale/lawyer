@@ -4,10 +4,11 @@
 // Package lawyer checks and fixes the copyright and SPDX license headers of a
 // repository's files.
 //
-// A Declaration says who owns the copyright and under which license. A
+// A Declaration says who owns the copyright, under which license, and for
+// which years (by default, each file's years from its git history). A
 // Repository holds the Licensables whose headers must carry it:
 //
-//	declaration := lawyer.Declaration{Owner: "Joseph Hale", License: "MPL-2.0"}
+//	declaration := lawyer.Declaration{Owner: "Joseph Hale", License: "MPL-2.0", Years: "2024-2026"}
 //	repository := lawyer.NewRepository(".")
 //
 //	violations, err := repository.Check(declaration)
