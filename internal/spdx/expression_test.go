@@ -37,3 +37,19 @@ func idsOf(found []License) []ID {
 	}
 	return ids
 }
+
+func TestCanonical(t *testing.T) {
+	cases := map[Expression]Expression{
+		"MIT OR Apache-2.0":           "Apache-2.0 OR MIT",
+		"Apache-2.0 OR MIT":           "Apache-2.0 OR MIT",
+		"MPL-2.0":                     "MPL-2.0",
+		"MIT AND Apache-2.0":          "MIT AND Apache-2.0",
+		"(MIT OR Apache-2.0) AND ISC": "(MIT OR Apache-2.0) AND ISC",
+		"MIT OR MIT":                  "MIT OR MIT",
+	}
+	for expression, canonical := range cases {
+		if got := expression.Canonical(); got != canonical {
+			t.Errorf("%s: got %s, expected %s", expression, got, canonical)
+		}
+	}
+}

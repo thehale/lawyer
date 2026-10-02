@@ -402,6 +402,20 @@ func TestTheLicenseNamesTheOwnerAndLicense(t *testing.T) {
 	}
 }
 
+func TestAChoiceOfLicensesIsWrittenAlphabetically(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n"})
+	_ = os.Remove("LICENSE")
+	git(t, "", "init", "--quiet")
+	fix := invoke(t, "", "check", "--fix", "--copyright-owner", "Joseph Hale", "--license", "MIT OR Apache-2.0")
+	header, _ := os.ReadFile("a.sh")
+
+	again := invoke(t, "", "check")
+
+	if fix.code != 0 || !strings.Contains(string(header), "SPDX-License-Identifier: Apache-2.0 OR MIT") || again.code != 0 {
+		t.Errorf("fix exit %d, a.sh %q; check without flags exit %d, stderr %q", fix.code, header, again.code, again.stderr)
+	}
+}
+
 func TestALicenseWithoutAnOwnerLeavesTheOwnerRequired(t *testing.T) {
 	createProject(t, nil)
 

@@ -39,6 +39,30 @@ func (e Expression) Licenses() ([]License, error) {
 	}
 }
 
+// Canonical is the expression as lawyer writes it: a choice of licenses, such
+// as "MIT OR Apache-2.0", in alphabetical order, and any other expression as
+// written.
+func (e Expression) Canonical() Expression {
+	tokens := strings.Fields(spacing.Replace(string(e)))
+	var names []string
+	for _, id := range ids(tokens) {
+		names = append(names, string(id))
+	}
+
+	if isChoice(tokens, len(names)) {
+		slices.Sort(names)
+		return Expression(strings.Join(names, " OR "))
+	} else {
+		return e
+	}
+}
+
+// isChoice reports whether tokens are count licenses with OR between each.
+func isChoice(tokens []string, count int) bool {
+	operators := slices.DeleteFunc(slices.Clone(tokens), func(token string) bool { return !isOperator(token) })
+	return len(tokens) == 2*count-1 && !slices.ContainsFunc(operators, func(token string) bool { return token != "OR" })
+}
+
 func knownLicenses(ids []ID) ([]License, error) {
 	var licenses []License
 	var failures []error

@@ -91,7 +91,7 @@ func (l Licensing) license() Expression {
 			ids = append(ids, string(license.ID))
 		}
 	}
-	return Expression(strings.Join(ids, " OR "))
+	return Expression(strings.Join(ids, " OR ")).Canonical()
 }
 
 func (l Licensing) owner() string {

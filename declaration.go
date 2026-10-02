@@ -101,7 +101,7 @@ func (d Declaration) span() (years.Range, error) {
 
 func (d Declaration) headerExpectation(licensable Licensable) header.Expectation {
 	history := licensable.repository.history
-	return header.Expectation{Copyright: d.copyright(history, history.EditYears(licensable.path)), License: d.License}
+	return header.Expectation{Copyright: d.copyright(history, history.EditYears(licensable.path)), License: d.License.Canonical()}
 }
 
 func (d Declaration) licenseExpectation(repository Repository) copyright.Expectation {
