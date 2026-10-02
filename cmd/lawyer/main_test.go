@@ -89,7 +89,7 @@ func createRepository(t *testing.T) {
 
 var this = strconv.Itoa(time.Now().Year())
 
-var mpl = must(os.ReadFile(filepath.Join("..", "..", "internal", "spdx", "texts", "MPL-2.0.txt")))
+var mpl = must(os.ReadFile(filepath.Join("..", "..", "LICENSE")))
 
 func writeLicense(t *testing.T) {
 	if err := os.WriteFile("LICENSE", mpl, 0o644); err != nil {

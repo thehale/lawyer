@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Joseph Hale
+SPDX-License-Identifier: MPL-2.0
+-->
+
 <div align="center">
 
 # lawyer
@@ -49,6 +54,7 @@ is both on SPDX's list and approved by the OSI.
 
 ```bash
 bin/setup  # Install the tools
+bin/build  # Build lawyer into build/lawyer
 bin/ci     # Run the checks
 bin/ci --fix  # Fix what can be fixed automatically
 ```

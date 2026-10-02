@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+#
+# Usage: bin/build
+#
+# Builds lawyer from this checkout into build/lawyer.
+
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+go build -o build/lawyer ./cmd/lawyer

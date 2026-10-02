@@ -4,6 +4,7 @@
 package lawyer
 
 import (
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -29,6 +30,16 @@ func TestRenderedLicensesPass(t *testing.T) {
 		if violations := file(file("").canonical(license, expectation)).violations(license, expectation); violations != nil {
 			t.Errorf("%s: %q", id, violations)
 		}
+	}
+}
+
+func TestTheTemplatesLicensePasses(t *testing.T) {
+	content, err := os.ReadFile("LICENSE")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if violations := file(string(content)).violations(byID(t, "MPL-2.0"), expectation); violations != nil {
+		t.Errorf("%q", violations)
 	}
 }
 

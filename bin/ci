@@ -13,6 +13,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/timing"
 
 results=""
 
+LAWYER="bin/build && build/lawyer check --copyright-owner 'Joseph Hale' --license MPL-2.0 --exclude '**/testdata/**'"
+
 function main() {
 	local started
 	started="$(microseconds_since_epoch)"
@@ -23,7 +25,7 @@ function main() {
 		check "Bash: Order" "filelike bash | bashorder check --fix"
 		check "YAML: Format" "bin/yamlformat --fix"
 		check "Markdown: Lint" "bin/markdownlint --fix"
-		check "License" "bin/lawyer --fix"
+		check "License" "$LAWYER --fix"
 
 		check "Go: Format" "bin/goformat --fix"
 		check "Go: Lint" "golangci-lint run --fix"
@@ -41,7 +43,7 @@ function main() {
 		check "Actions: Audit" "zizmor --quiet .github"
 		check "YAML: Format" "bin/yamlformat"
 		check "Markdown: Lint" "bin/markdownlint"
-		check "License" "bin/lawyer"
+		check "License" "$LAWYER"
 		check "Secrets" "bin/secrets #--verbose"
 		check "Dependencies" "osv-scanner scan source --recursive --allow-no-lockfiles ."
 

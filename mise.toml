@@ -1,5 +1,7 @@
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
 [tools]
-"aqua:hashicorp/copywrite" = "0.25.3"
 "github:thehale/bashorder" = "0.1.0"
 actionlint = "1.7.12"
 bats = "1.14.0"
