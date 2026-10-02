@@ -38,6 +38,23 @@ func isUnchanged(path paths.Path, before string) bool {
 	return err == nil && string(now) == before
 }
 
+func Remove(path paths.Path, before string) error {
+	if isUnchanged(path, before) {
+		return os.Remove(string(path))
+	} else {
+		return fmt.Errorf("%s changed while being fixed, so it was left alone", path.Printable())
+	}
+}
+
+func Create(path paths.Path, content string) error {
+	file, err := os.OpenFile(string(path), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err == nil {
+		_, err = file.WriteString(content)
+		err = errors.Join(err, file.Sync(), file.Close())
+	}
+	return err
+}
+
 func write(temporary *os.File, content string, original fs.FileInfo) error {
 	_, err := temporary.WriteString(content)
 	return errors.Join(err, own(temporary, original), temporary.Chmod(mode(original)), temporary.Sync(), temporary.Close())

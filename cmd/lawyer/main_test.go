@@ -87,7 +87,7 @@ func createRepository(t *testing.T) {
 
 var this = strconv.Itoa(time.Now().Year())
 
-var mpl = must(os.ReadFile(filepath.Join("..", "..", "LICENSE")))
+var mpl = must(os.ReadFile(filepath.Join("..", "..", "internal", "spdx", "texts", "MPL-2.0.txt")))
 
 func writeLicense(t *testing.T) {
 	if err := os.WriteFile("LICENSE", mpl, 0o644); err != nil {
@@ -118,6 +118,21 @@ func TestUsage(t *testing.T) {
 		if got := invoke(t, "", args...); got.code != 2 || !strings.Contains(got.stderr, "Usage:") {
 			t.Errorf("%q: exit %d, stderr %q", args, got.code, got.stderr)
 		}
+	}
+}
+
+func TestWalkReportsEveryFailure(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n", "b.yml": "x: 1\n", "c.sh": headed, "vendor/d.sh": "echo\n", "e.json": "{}\n", "COPYING.md": "text\n"})
+	git(t, "", "init", "--quiet")
+
+	got := invoke(t, "", append([]string{"check", "--exclude", "**/vendor/**"}, mine...)...)
+	expected := text(`
+a.sh: missing header
+b.yml: missing header
+`)
+
+	if got.code != 1 || got.stderr != expected {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
 }
 
@@ -295,6 +310,116 @@ func TestOutsideGitWarns(t *testing.T) {
 	}
 }
 
+func TestFixWritesAMissingLicense(t *testing.T) {
+	createProject(t, nil)
+	_ = os.Remove("LICENSE")
+
+	check := invoke(t, "", append([]string{"check"}, mine...)...)
+	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	content, _ := os.ReadFile("LICENSE")
+	top := "Mozilla Public License Version 2.0\n"
+
+	if !strings.HasSuffix(check.stderr, "LICENSE: missing\n") || fix.stdout != "LICENSE: fixed\n" || !strings.HasPrefix(string(content), top) {
+		t.Errorf("check %q; fix %q; LICENSE %q", check.stderr, fix.stdout, content[:min(80, len(content))])
+	}
+}
+
+func TestSeveralLicensesTakeAFileEach(t *testing.T) {
+	createProject(t, nil)
+	_ = os.Remove("LICENSE")
+	args := []string{"check", "--copyright-owner", "Joseph Hale", "--license", "MIT OR Apache-2.0"}
+
+	fix := invoke(t, "", append(args, "--fix")...)
+	again := invoke(t, "", args...)
+
+	if fix.stdout != text(`
+LICENSE-MIT: fixed
+LICENSE-Apache-2.0: fixed
+`) || again.code != 0 {
+		t.Errorf("fix %q %q; check after: exit %d, %q", fix.stdout, fix.stderr, again.code, again.stderr)
+	}
+}
+
+func TestSeveralLicensesReplaceThePlainOne(t *testing.T) {
+	createProject(t, nil)
+	args := []string{"check", "--copyright-owner", "Joseph Hale", "--license", "MIT OR Apache-2.0"}
+
+	check := invoke(t, "", args...)
+	fix := invoke(t, "", append(args, "--fix")...)
+	again := invoke(t, "", args...)
+	_, kept := os.Stat("LICENSE")
+
+	if !strings.Contains(check.stderr, "LICENSE: not a file the --license expression calls for") || !strings.Contains(fix.stdout, "LICENSE: removed") || kept == nil || again.code != 0 {
+		t.Errorf("check %q; fix %q; check after: exit %d, %q", check.stderr, fix.stdout, again.code, again.stderr)
+	}
+}
+
+func TestAStrayLicenseFileIsRemoved(t *testing.T) {
+	createProject(t, map[string]string{"LICENSE-MIT.md": "old\n"})
+
+	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	_, kept := os.Stat("LICENSE-MIT.md")
+
+	if fix.stdout != "LICENSE-MIT.md: removed\n" || kept == nil {
+		t.Errorf("fix %q %q", fix.stdout, fix.stderr)
+	}
+}
+
+func TestMarkdownLicensePasses(t *testing.T) {
+	createProject(t, nil)
+	_ = os.Rename("LICENSE", "LICENSE.md")
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestFixLeavesAPassingLicenseAsWritten(t *testing.T) {
+	createProject(t, nil)
+	reflowed := strings.ReplaceAll(string(must(os.ReadFile("LICENSE"))), "\n\n", "\n\n  ")
+	_ = os.WriteFile("LICENSE", []byte(reflowed), 0o644)
+
+	got := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	kept, _ := os.ReadFile("LICENSE")
+
+	if got.code != 0 || got.stdout != "" || string(kept) != reflowed {
+		t.Errorf("exit %d, stdout %q, LICENSE rewritten: %v", got.code, got.stdout, string(kept) != reflowed)
+	}
+}
+
+func TestDuplicateLicenseFilesFail(t *testing.T) {
+	createProject(t, map[string]string{"LICENSE.md": "copy\n"})
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, "LICENSE: one of several files for MPL-2.0\nLICENSE.md: one of several files for MPL-2.0\n") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestUnknownLicenseIsAUsageError(t *testing.T) {
+	createProject(t, nil)
+
+	if got := invoke(t, "", "check", "--copyright-owner", "Joseph Hale", "--license", "CC-BY-4.0"); got.code != 2 || !strings.Contains(got.stderr, "unknown license CC-BY-4.0") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestFixNeverFollowsALicenseSymlink(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "target")
+	createProject(t, nil)
+	_ = os.Remove("LICENSE")
+	_ = os.WriteFile(target, []byte("keep\n"), 0o644)
+	if err := os.Symlink(target, "LICENSE"); err != nil {
+		t.Fatal(err)
+	}
+
+	got := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	kept, _ := os.ReadFile(target)
+
+	if string(kept) != "keep\n" || !strings.Contains(got.stderr, "LICENSE: not a regular file") {
+		t.Errorf("target %q; exit %d, stderr %q", kept, got.code, got.stderr)
+	}
+}
+
 func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
 	outside := filepath.Join(t.TempDir(), "outside.sh")
 	_ = os.WriteFile(outside, []byte("echo\n"), 0o644)
@@ -305,6 +430,14 @@ func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
 
 	if got.code != 1 || string(kept) != "echo\n" || !strings.Contains(got.stderr, "outside the repository") {
 		t.Errorf("exit %d, stderr %q, file %q", got.code, got.stderr, kept)
+	}
+}
+
+func TestOnlyLicenseNamesSkipTheHeader(t *testing.T) {
+	createProject(t, map[string]string{"LICENSE.sh": "echo\n", "COPYING-MIT.txt": "text\n"})
+
+	if got := invoke(t, "", append([]string{"check", "LICENSE.sh", "COPYING-MIT.txt"}, mine...)...); !strings.Contains(got.stderr, "LICENSE.sh: missing header") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
 }
 

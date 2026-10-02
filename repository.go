@@ -4,6 +4,7 @@
 package lawyer
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/thehale/lawyer/internal/history"
@@ -13,7 +14,8 @@ import (
 // A Path is the path of a file or directory.
 type Path = paths.Path
 
-// A Repository is the working tree whose files and git history lawyer reads.
+// A Repository is the working tree whose files, LICENSE files and git history
+// lawyer reads.
 type Repository struct {
 	root    Path
 	history history.History
@@ -31,14 +33,38 @@ func (r Repository) Licensables(paths ...Path) Licensables {
 	return Licensables{repository: r, paths: paths}
 }
 
-// Check finds how every licensable's header falls short of declaration.
-func (r Repository) Check(declaration Declaration) ([]Violation, error) {
-	return r.Licensables().Check(declaration)
+// Licensing is the repository's LICENSE files.
+func (r Repository) Licensing() Licensing {
+	files, err := licenseFiles(r.root)
+	return Licensing{repository: r, files: files, err: err}
 }
 
-// Fix makes every licensable's header what declaration calls for.
+// Check finds how every licensable's header and the repository's Licensing
+// fall short of declaration.
+func (r Repository) Check(declaration Declaration) ([]Violation, error) {
+	err := declaration.Validate()
+
+	if err == nil {
+		headers, headersErr := r.Licensables().Check(declaration)
+		licenses, licensesErr := r.Licensing().Check(declaration)
+		return append(headers, licenses...), errors.Join(headersErr, licensesErr)
+	} else {
+		return nil, err
+	}
+}
+
+// Fix makes every licensable's header and the repository's Licensing what
+// declaration calls for.
 func (r Repository) Fix(declaration Declaration) (Changes, error) {
-	return r.Licensables().Fix(declaration)
+	err := declaration.Validate()
+
+	if err == nil {
+		headers, headersErr := r.Licensables().Fix(declaration)
+		licenses, licensesErr := r.Licensing().Fix(declaration)
+		return headers.Union(licenses), errors.Join(headersErr, licensesErr)
+	} else {
+		return Changes{}, err
+	}
 }
 
 // Warnings are what keeps the repository from checking declaration fully.

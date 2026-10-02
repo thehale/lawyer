@@ -9,14 +9,21 @@ type Violation struct {
 	Message string
 }
 
-// Changes are what a fix did: the files it Fixed.
+// Changes are what a fix did, and what it couldn't do: the files it Fixed and
+// Removed, and the Violations it left Unfixed.
 type Changes struct {
-	Fixed []Path
+	Fixed   []Path
+	Removed []Path
+	Unfixed []Violation
 }
 
 // Union is both fixes' changes, these first.
 func (c Changes) Union(other Changes) Changes {
-	return Changes{Fixed: append(c.Fixed, other.Fixed...)}
+	return Changes{
+		Fixed:   append(c.Fixed, other.Fixed...),
+		Removed: append(c.Removed, other.Removed...),
+		Unfixed: append(c.Unfixed, other.Unfixed...),
+	}
 }
 
 // fixOf is the change a fix of path made, or its error.

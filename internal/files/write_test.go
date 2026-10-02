@@ -31,6 +31,28 @@ func TestReplaceNeverRecreatesADeletedFile(t *testing.T) {
 	}
 }
 
+func TestCreateNeverOverwrites(t *testing.T) {
+	path := temporaryDirectory(t).Child("LICENSE")
+	save(t, path, "theirs\n")
+
+	err := Create(path, "ours\n")
+
+	if err == nil || contents(path) != "theirs\n" {
+		t.Errorf("error %v, file %q", err, contents(path))
+	}
+}
+
+func TestRemoveLeavesAFileEditedSinceItWasRead(t *testing.T) {
+	path := temporaryDirectory(t).Child("LICENSE")
+	save(t, path, "saved meanwhile\n")
+
+	err := Remove(path, "read earlier\n")
+
+	if err == nil || contents(path) != "saved meanwhile\n" {
+		t.Errorf("error %v, file %q", err, contents(path))
+	}
+}
+
 func temporaryDirectory(t *testing.T) paths.Path {
 	return paths.Path(t.TempDir())
 }

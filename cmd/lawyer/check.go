@@ -62,14 +62,17 @@ func (o *options) take(args []string) ([]string, error) {
 
 func (o options) run(repository lawyer.Repository) int {
 	licensables, pathsErr := o.licensables(repository)
+	licensing := repository.Licensing()
 	printWarnings(repository.Warnings(o.declaration))
 
 	if o.fix {
-		changes, err := licensables.Fix(o.declaration)
-		return printChanges(changes, errors.Join(pathsErr, err))
+		headers, headersErr := licensables.Fix(o.declaration)
+		licenses, licensesErr := licensing.Fix(o.declaration)
+		return printChanges(headers.Union(licenses), errors.Join(pathsErr, headersErr, licensesErr))
 	} else {
-		violations, err := licensables.Check(o.declaration)
-		return printViolations(violations, errors.Join(pathsErr, err))
+		headers, headersErr := licensables.Check(o.declaration)
+		licenses, licensesErr := licensing.Check(o.declaration)
+		return printViolations(append(headers, licenses...), errors.Join(pathsErr, headersErr, licensesErr))
 	}
 }
 

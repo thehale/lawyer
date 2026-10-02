@@ -31,6 +31,15 @@ func StatementIn(line string) (Statement, bool) {
 	}
 }
 
+func StatementBy(text, owner string) (Statement, bool) {
+	for _, line := range strings.Split(text, "\n") {
+		if statement, ok := StatementIn(line); ok && statement.HasOwner(owner) {
+			return statement, true
+		}
+	}
+	return "", false
+}
+
 func (s Statement) HasOwner(owner string) bool {
 	return strings.Contains(strings.ToLower(s.Owner()), strings.ToLower(owner))
 }

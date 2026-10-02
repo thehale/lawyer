@@ -64,7 +64,7 @@ func (l Licensable) Fix(declaration Declaration) (Changes, error) {
 func readSource(path Path) (string, syntax.Language, error) {
 	info, err := os.Lstat(string(path))
 
-	if err == nil && info.Mode().IsRegular() {
+	if err == nil && info.Mode().IsRegular() && !isLicenseName(path.Base()) {
 		return readText(path)
 	} else {
 		return "", syntax.Language{}, err

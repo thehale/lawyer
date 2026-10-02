@@ -13,7 +13,8 @@ var version = "dev"
 const usage = `Usage: lawyer check [--fix] --copyright-owner OWNER --license EXPRESSION
                     [--copyright-year YEARS] [--exclude GLOB]... [PATH... | -]
 
-Checks that files carry a copyright and SPDX header, and --fix writes them.
+Checks that files carry a copyright and SPDX header and that the LICENSE
+matches, and --fix writes them.
 `
 
 func main() {

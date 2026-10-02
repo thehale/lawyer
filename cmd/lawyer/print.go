@@ -14,7 +14,10 @@ func printChanges(changes lawyer.Changes, err error) int {
 	for _, path := range changes.Fixed {
 		fmt.Printf("%s: fixed\n", path)
 	}
-	return printError(err)
+	for _, path := range changes.Removed {
+		fmt.Printf("%s: removed\n", path)
+	}
+	return printViolations(changes.Unfixed, err)
 }
 
 func printWarnings(warnings []string) {
