@@ -1,11 +1,11 @@
 <div align="center">
 
-# Package
+# lawyer
 
-tagline...
+A linter for your copyright headers (with autofix!)
 
 <!-- BADGES -->
-[![License: MPL-2.0](https://badgen.net/github/license/thehale/package)](https://github.com/thehale/package/blob/main/LICENSE)
+[![License: MPL-2.0](https://badgen.net/github/license/thehale/lawyer)](https://github.com/thehale/lawyer/blob/main/LICENSE)
 [![Sponsor thehale on GitHub](https://badgen.net/badge/icon/Sponsor/pink?icon=github&label)](https://github.com/sponsors/thehale)
 [![Joseph Hale's software engineering blog](https://jhale.dev/badges/website.svg)](https://jhale.dev)
 [![Follow Joseph Hale on LinkedIn](https://jhale.dev/badges/follow.svg)](https://www.linkedin.com/comm/mynetwork/discovery-see-all?usecase=PEOPLE_FOLLOWS&followMember=thehale)
@@ -14,8 +14,36 @@ tagline...
 ## Quickstart
 
 ```bash
-go install github.com/thehale/package/cmd/package@latest
+lawyer check --copyright-owner "Your Name" --license MPL-2.0
 ```
+
+Every file gets a header in its own comment syntax:
+
+```bash
+# Copyright (c) 2024-2026 Your Name
+# SPDX-License-Identifier: MPL-2.0
+```
+
+- **Files.** With no paths, lawyer checks what git lists: tracked files and
+  untracked files that aren't ignored. `-` reads the paths from stdin instead.
+  `--exclude '**/glob/**'` checks nothing on the paths it matches.
+- **Existing headers.** The owner's copyright line is found in any common
+  shape, such as `Copyright 2022, 2024 Your Name` or `© 2022 Your Name`, and
+  rewritten to the one above. A license's standard notice, such as MPL-2.0's
+  "This Source Code Form is subject to…", becomes the SPDX line. Other owners'
+  copyright lines stay.
+- **Years.** A header spans the years the file was edited, from git history.
+  Commits that only touch the header don't count, and uncommitted changes count
+  as this year. A shallow clone or a directory outside git is checked less
+  strictly, with a warning. `--copyright-year 2024-2026` overrides the history.
+- **LICENSE.** It must be the license's text, with the owner's copyright line
+  wherever the license has a place for one, as MIT and BSD do.
+  An expression with several licenses, such as `MIT OR Apache-2.0`, takes a
+  `LICENSE-<id>` file for each.
+
+`lawyer languages` lists the languages lawyer puts headers in, and
+`lawyer licenses` lists the SPDX ids `--license` accepts: every license that
+is both on SPDX's list and approved by the OSI.
 
 ## Development
 
@@ -24,6 +52,10 @@ bin/setup  # Install the tools
 bin/ci     # Run the checks
 bin/ci --fix  # Fix what can be fixed automatically
 ```
+
+Each language has its own file in [internal/languages](internal/languages).
+License texts come from SPDX into
+[internal/spdx/texts](internal/spdx/texts) through `bin/update-licenses`.
 
 ## License
 
