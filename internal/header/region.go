@@ -25,6 +25,14 @@ func (r region) end() int {
 	return r.start + len(r.lines)
 }
 
+func (r region) withoutTrailingBlanks() region {
+	end := len(r.lines)
+	for end > 0 && r.lines[end-1].isBlank() {
+		end--
+	}
+	return region{start: r.start, lines: r.lines[:end]}
+}
+
 func (r region) isExactly(block []string) bool {
 	stray := slices.ContainsFunc(r.lines[min(len(block), len(r.lines)):], func(line regionLine) bool { return line.ours })
 	return !stray && slices.Equal(r.raws(len(block)), block)
@@ -70,4 +78,8 @@ func (r region) removals() []bool {
 
 func (l regionLine) isBare() bool {
 	return !l.syntax && !syntax.HasWords(l.raw)
+}
+
+func (l regionLine) isBlank() bool {
+	return strings.TrimSpace(l.raw) == ""
 }

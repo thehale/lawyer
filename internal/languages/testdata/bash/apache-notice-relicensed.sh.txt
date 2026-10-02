@@ -22,4 +22,5 @@ echo
 # SPDX-License-Identifier: MPL-2.0
 
 # Copyright 2015 the original authors.
+
 echo

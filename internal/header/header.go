@@ -105,7 +105,8 @@ func (h Header) notice() *detect.Notice {
 }
 
 func (h Header) region(owner string) region {
-	return region{start: h.start, lines: regionLines(h.doc.lines[h.start:], h.comment, h.claims, namesOwner(owner))}
+	lines := regionLines(h.doc.lines[h.start:], h.comment, h.claims, namesOwner(owner))
+	return region{start: h.start, lines: lines}.withoutTrailingBlanks()
 }
 
 func (h Header) copyrightViolations(expectation Expectation) []string {
