@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 
+	"github.com/thehale/lawyer/internal/copyright"
 	"github.com/thehale/lawyer/internal/files"
 	"github.com/thehale/lawyer/internal/spdx"
 )
@@ -80,6 +82,28 @@ func (l Licensing) Fix(declaration Declaration) (Changes, error) {
 	violations, violationsErr := l.Check(declaration)
 	changes.Unfixed = slices.DeleteFunc(violations, func(violation Violation) bool { return slices.Contains(touched, violation.Path) })
 	return changes, errors.Join(violationsErr, err)
+}
+
+func (l Licensing) license() Expression {
+	var ids []string
+	for _, file := range l.files {
+		if license, found := file.license(); found {
+			ids = append(ids, string(license.ID))
+		}
+	}
+	return Expression(strings.Join(ids, " OR "))
+}
+
+func (l Licensing) owner() string {
+	var owners []string
+	for _, file := range l.files {
+		for _, line := range strings.Split(file.content, "\n") {
+			if statement, found := copyright.StatementIn(line); found && statement.HasYear() {
+				owners = append(owners, statement.Owner())
+			}
+		}
+	}
+	return append(owners, "")[0]
 }
 
 func (l Licensing) declaredBy(declaration Declaration) Licensing {

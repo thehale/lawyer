@@ -4,6 +4,7 @@
 package lawyer
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"strings"
@@ -31,6 +32,18 @@ type Declaration struct {
 // An Expression is an SPDX license expression, such as "MPL-2.0" or
 // "MIT OR Apache-2.0".
 type Expression = spdx.Expression
+
+// DeclarationFrom is what licensing's LICENSE files declare: the licenses
+// they hold, any one of which applies, and the owner their copyright line
+// names. Their years are left to history.
+func DeclarationFrom(licensing Licensing) Declaration {
+	return Declaration{Owner: licensing.owner(), License: licensing.license()}
+}
+
+// Or is the declaration with each field it leaves empty taken from fallback.
+func (d Declaration) Or(fallback Declaration) Declaration {
+	return Declaration{Owner: cmp.Or(d.Owner, fallback.Owner), License: cmp.Or(d.License, fallback.License), Years: cmp.Or(d.Years, fallback.Years)}
+}
 
 // Validate reports what is wrong with the Declaration, or nil when nothing is.
 func (d Declaration) Validate() error {

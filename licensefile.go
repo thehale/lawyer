@@ -25,6 +25,7 @@ type licenseFile struct {
 var (
 	recognizedName = regexp.MustCompile(`(?i)^(LICEN[CS]E|COPYING)(-[a-z0-9.+-]+)?(\.(md|txt))?$`)
 	managedName    = regexp.MustCompile(`(?i)^LICEN[CS]E(-[a-z0-9.+-]+)?(\.(md|txt))?$`)
+	namedID        = regexp.MustCompile(`(?i)^LICEN[CS]E-([a-z0-9.+-]+?)(\.(md|txt))?$`)
 )
 
 func readLicenseFile(root Path, name string) (licenseFile, error) {
@@ -41,6 +42,20 @@ func readLicenseFile(root Path, name string) (licenseFile, error) {
 
 // license is the license the file holds: the one its name gives, as
 // LICENSE-MIT does, or else the one its text is.
+func (f licenseFile) license() (spdx.License, bool) {
+	match := namedID.FindStringSubmatch(f.name)
+	license, named := spdx.License{}, false
+	if match != nil {
+		license, named = spdx.ByID(spdx.ID(match[1]))
+	}
+
+	if named {
+		return license, true
+	} else {
+		return spdx.Identify(f.content)
+	}
+}
+
 // violations are how the file falls short of holding license as expectation
 // calls for.
 func (f licenseFile) violations(license spdx.License, expectation copyright.Expectation) []string {

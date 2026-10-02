@@ -12,10 +12,11 @@ import (
 )
 
 func runCheck(args []string) int {
-	options, err := parse(args)
+	repository := lawyer.NewRepository(".")
+	options, err := parse(args, repository.Licensing())
 
 	if err == nil {
-		return options.run(lawyer.NewRepository("."))
+		return options.run(repository)
 	} else {
 		fmt.Fprintf(os.Stderr, "lawyer: %v\n\n%s", err, usage)
 		return 2
@@ -29,11 +30,14 @@ type options struct {
 	paths       []string
 }
 
-func parse(args []string) (options, error) {
+func parse(args []string, licensing lawyer.Licensing) (options, error) {
 	var chosen options
 	var err error
 	for rest := args; len(rest) > 0 && err == nil; {
 		rest, err = chosen.take(rest)
+	}
+	if chosen.declaration.Owner == "" || chosen.declaration.License == "" {
+		chosen.declaration = chosen.declaration.Or(lawyer.DeclarationFrom(licensing))
 	}
 	return chosen, errors.Join(err, chosen.declaration.Validate())
 }

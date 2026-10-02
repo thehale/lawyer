@@ -389,6 +389,29 @@ func TestFixLeavesAPassingLicenseAsWritten(t *testing.T) {
 	}
 }
 
+func TestTheLicenseNamesTheOwnerAndLicense(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n"})
+	_ = os.Remove("LICENSE")
+	git(t, "", "init", "--quiet")
+	setup := invoke(t, "", "check", "--fix", "--copyright-owner", "Joseph Hale", "--license", "MIT")
+
+	got := invoke(t, "", "check")
+
+	if setup.code != 0 || got.code != 0 {
+		t.Errorf("setup exit %d, stderr %q; check exit %d, stderr %q", setup.code, setup.stderr, got.code, got.stderr)
+	}
+}
+
+func TestALicenseWithoutAnOwnerLeavesTheOwnerRequired(t *testing.T) {
+	createProject(t, nil)
+
+	got := invoke(t, "", "check")
+
+	if got.code != 2 || !strings.Contains(got.stderr, "an owner is required") || strings.Contains(got.stderr, "a license is required") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestDuplicateLicenseFilesFail(t *testing.T) {
 	createProject(t, map[string]string{"LICENSE.md": "copy\n"})
 
