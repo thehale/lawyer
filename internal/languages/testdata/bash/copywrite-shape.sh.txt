@@ -1,0 +1,5 @@
+# Copyright (c) Joseph Hale, 2024
+# SPDX-License-Identifier: MPL-2.0
+--------------------------------------------------------------------------------
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0

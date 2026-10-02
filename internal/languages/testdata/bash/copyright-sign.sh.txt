@@ -1,0 +1,4 @@
+# © 2023 joseph hale
+--------------------------------------------------------------------------------
+# Copyright (c) 2023 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0

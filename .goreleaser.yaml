@@ -3,21 +3,21 @@
 
 version: 2
 
-project_name: package
+project_name: lawyer
 
 builds:
-  - id: package
-    main: ./cmd/package
-    binary: package
+  - id: lawyer
+    main: ./cmd/lawyer
+    binary: lawyer
     env:
       - CGO_ENABLED=0
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
     flags: [-trimpath]
-    ldflags: ["-s -w"]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
 
 archives:
-  - ids: [package]
+  - ids: [lawyer]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
