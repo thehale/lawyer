@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -668,6 +669,15 @@ func TestLanguagesListsEachWithItsFiles(t *testing.T) {
 	table := regexp.MustCompile(` {2,}`).ReplaceAllString(got.stdout, "  ")
 
 	if got.code != 0 || !strings.Contains(table, "Bash  .bash .sh #!bash #!sh\n") || !strings.Contains(table, "Ruby  Gemfile .rb .gemspec .rake .ru #!ruby\n") || !strings.Contains(table, "JSON  .json (no header)\n") {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
+	}
+}
+
+func TestLicensesListsTheAcceptedIDs(t *testing.T) {
+	got := invoke(t, "", "licenses")
+	ids := strings.Fields(got.stdout)
+
+	if got.code != 0 || !slices.Contains(ids, "MPL-2.0") || !slices.Contains(ids, "GPL-3.0-or-later") || slices.Contains(ids, "CC-BY-4.0") {
 		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }

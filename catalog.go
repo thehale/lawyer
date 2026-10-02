@@ -5,6 +5,7 @@ package lawyer
 
 import (
 	_ "github.com/thehale/lawyer/internal/languages"
+	"github.com/thehale/lawyer/internal/spdx"
 	"github.com/thehale/lawyer/internal/syntax"
 )
 
@@ -23,6 +24,9 @@ type Language struct {
 	HasHeader bool
 }
 
+// A LicenseID is an SPDX short identifier, such as "MPL-2.0".
+type LicenseID = spdx.ID
+
 // Languages lists every Language lawyer recognizes, ordered by name.
 func Languages() []Language {
 	var languages []Language
@@ -36,4 +40,10 @@ func Languages() []Language {
 		})
 	}
 	return languages
+}
+
+// Licenses lists the license ids an Expression may use: every license SPDX
+// marks OSI-approved and not deprecated.
+func Licenses() []LicenseID {
+	return spdx.IDs()
 }
