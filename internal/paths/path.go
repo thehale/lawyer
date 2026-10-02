@@ -4,6 +4,7 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -23,6 +24,11 @@ func (p Path) Printable() Path {
 
 func (p Path) Child(name string) Path {
 	return Path(filepath.Join(string(p), name))
+}
+
+func (p Path) IsDirectory() bool {
+	info, err := os.Stat(string(p))
+	return err == nil && info.IsDir()
 }
 
 func (p Path) Base() string {

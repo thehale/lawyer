@@ -58,6 +58,14 @@ func createProject(t *testing.T, files map[string]string) {
 	}
 }
 
+func git(t *testing.T, date string, args ...string) {
+	command := exec.Command("git", append([]string{"-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false"}, args...)...)
+	command.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, output)
+	}
+}
+
 var mpl = must(os.ReadFile(filepath.Join("..", "..", "LICENSE")))
 
 func writeLicense(t *testing.T) {
@@ -79,11 +87,28 @@ func must[T any](value T, err error) T {
 
 var mine = []string{"--copyright-owner", "Joseph Hale", "--license", "MPL-2.0"}
 
+var headed = text(`
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+`)
+
 func TestUsage(t *testing.T) {
 	for _, args := range [][]string{{}, {"check"}, {"check", "--license", "MIT"}, {"check", "--bogus"}, {"check", "--license"}, append([]string{"check", "--fix=never"}, mine...), append([]string{"check", "--license", "MIT"}, mine...)} {
 		if got := invoke(t, "", args...); got.code != 2 || !strings.Contains(got.stderr, "Usage:") {
 			t.Errorf("%q: exit %d, stderr %q", args, got.code, got.stderr)
 		}
+	}
+}
+
+func TestFixListsWhatChanged(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n", "c.sh": headed})
+	git(t, "", "init", "--quiet")
+
+	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	again := invoke(t, "", append([]string{"check"}, mine...)...)
+
+	if fix.code != 0 || fix.stdout != "a.sh: fixed\n" || again.code != 0 {
+		t.Errorf("fix: exit %d, stdout %q; check after: exit %d, stderr %q", fix.code, fix.stdout, again.code, again.stderr)
 	}
 }
 
@@ -115,6 +140,14 @@ func TestFixKeepsTheFileMode(t *testing.T) {
 
 	if info.Mode().Perm() != 0o750 {
 		t.Errorf("mode %v", info.Mode())
+	}
+}
+
+func TestControlCharactersInNamesAreQuoted(t *testing.T) {
+	createProject(t, map[string]string{"evil\x1b[2J.sh": "echo\n"})
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, `"evil\x1b[2J.sh": missing header`) {
+		t.Errorf("stderr %q", got.stderr)
 	}
 }
 

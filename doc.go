@@ -10,6 +10,11 @@
 //	declaration := lawyer.Declaration{Owner: "Joseph Hale", License: "MPL-2.0"}
 //	repository := lawyer.NewRepository(".")
 //
-//	violations, err := repository.Licensables("install.sh").Check(declaration)
-//	changes, err := repository.Licensables("install.sh").Fix(declaration)
+//	violations, err := repository.Check(declaration)
+//	repository.Fix(declaration)
+//
+// If you want to check or fix only some of the files...
+//
+//	headerViolations, err := repository.Licensables("bin", "install.sh").Check(declaration)
+//	headerChanges, err := repository.Licensables("bin", "install.sh").Fix(declaration)
 package lawyer

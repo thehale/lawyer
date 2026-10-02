@@ -18,7 +18,19 @@ func NewRepository(root Path) Repository {
 	return Repository{root: root}
 }
 
-// Licensables are the files at paths. They're read as they're iterated.
+// Licensables are the files under paths, walking directories, or every file
+// git tracks or doesn't ignore when no paths are given. They're read as
+// they're iterated.
 func (r Repository) Licensables(paths ...Path) Licensables {
 	return Licensables{repository: r, paths: paths}
+}
+
+// Check finds how every licensable's header falls short of declaration.
+func (r Repository) Check(declaration Declaration) ([]Violation, error) {
+	return r.Licensables().Check(declaration)
+}
+
+// Fix makes every licensable's header what declaration calls for.
+func (r Repository) Fix(declaration Declaration) (Changes, error) {
+	return r.Licensables().Fix(declaration)
 }
