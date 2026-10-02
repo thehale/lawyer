@@ -100,6 +100,41 @@ func TestUsage(t *testing.T) {
 	}
 }
 
+func TestStdinChecksOnlyTheListed(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n", "b.sh": "echo\n"})
+	git(t, "", "init", "--quiet")
+
+	got := invoke(t, "b.sh\n", append([]string{"check", "-"}, mine...)...)
+
+	if got.code != 1 || got.stderr != "b.sh: missing header\n" {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestAPathGivenTwiceIsCheckedOnce(t *testing.T) {
+	createProject(t, map[string]string{"src/a.sh": "echo\n", "src/b.sh": "echo\n"})
+	git(t, "", "init", "--quiet")
+
+	got := invoke(t, "", append(append([]string{"check"}, mine...), "src/a.sh", "src", "./src/a.sh")...)
+	expected := text(`
+src/a.sh: missing header
+src/b.sh: missing header
+`)
+
+	if got.code != 1 || got.stderr != expected {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestEmptyStdinPasses(t *testing.T) {
+	createProject(t, map[string]string{"a.sh": "echo\n"})
+	git(t, "", "init", "--quiet")
+
+	if got := invoke(t, "", append([]string{"check", "-"}, mine...)...); got.code != 0 || got.stderr != "" {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestFixListsWhatChanged(t *testing.T) {
 	createProject(t, map[string]string{"a.sh": "echo\n", "c.sh": headed})
 	git(t, "", "init", "--quiet")
@@ -117,6 +152,19 @@ func TestMissingFileFails(t *testing.T) {
 
 	if got := invoke(t, "", append([]string{"check", "gone.sh"}, mine...)...); got.code != 1 {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
+	outside := filepath.Join(t.TempDir(), "outside.sh")
+	_ = os.WriteFile(outside, []byte("echo\n"), 0o644)
+	createProject(t, nil)
+
+	got := invoke(t, outside+"\n", append([]string{"check", "--fix", "-"}, mine...)...)
+	kept, _ := os.ReadFile(outside)
+
+	if got.code != 1 || string(kept) != "echo\n" || !strings.Contains(got.stderr, "outside the repository") {
+		t.Errorf("exit %d, stderr %q, file %q", got.code, got.stderr, kept)
 	}
 }
 
@@ -175,10 +223,31 @@ func TestAnOwnerSpanningLinesIsAUsageError(t *testing.T) {
 	}
 }
 
+func TestARefusedPathLeavesTheRestChecked(t *testing.T) {
+	createProject(t, map[string]string{"bad.sh": "echo\n"})
+
+	got := invoke(t, text(`
+bad.sh
+../outside.sh
+`), append([]string{"check", "-"}, mine...)...)
+
+	if got.code != 1 || !strings.Contains(got.stderr, "bad.sh: missing header") || !strings.Contains(got.stderr, "outside the repository") {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestLateNullBytesStillMarkABinary(t *testing.T) {
 	createProject(t, map[string]string{"asset.sh": strings.Repeat("a", 9000) + "\x00payload"})
 
 	if got := invoke(t, "", append([]string{"check", "--fix", "asset.sh"}, mine...)...); got.stdout != "" {
 		t.Errorf("stdout %q", got.stdout)
+	}
+}
+
+func TestRefusedPathsAreQuoted(t *testing.T) {
+	createProject(t, nil)
+
+	if got := invoke(t, "../\x1b[2Jx.sh\n", append([]string{"check", "-"}, mine...)...); !strings.Contains(got.stderr, `"../\x1b[2Jx.sh": outside`) {
+		t.Errorf("stderr %q", got.stderr)
 	}
 }

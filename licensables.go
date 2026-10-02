@@ -74,14 +74,18 @@ func (l Licensables) files() ([]Path, error) {
 			files = append(files, under...)
 			failures = append(failures, err)
 		}
-		return files, errors.Join(failures...)
+		within, outside := paths.FilesWithin(l.repository.root, files)
+		return paths.Distinct(within), errors.Join(append(failures, outside)...)
 	}
 }
 
 func filesIn(path Path) ([]Path, error) {
-	if path.IsDirectory() {
+	switch {
+	case path == "":
+		return nil, nil
+	case path.IsDirectory():
 		return paths.FilesUnder(path)
-	} else {
+	default:
 		return []Path{path}, nil
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -63,4 +64,20 @@ func must(value string, err error) string {
 		panic(err)
 	}
 	return value
+}
+
+func TestPathsOutsideTheWorkingDirectoryAreRefused(t *testing.T) {
+	outside := Path(t.TempDir())
+	t.Chdir(t.TempDir())
+	write(t, "inside.sh", "")
+	if err := os.Symlink(string(outside), "linked"); err != nil {
+		t.Fatal(err)
+	}
+
+	given := []Path{"inside.sh", "../escape.sh", outside.Child("x.sh"), "linked/y.sh", "missing/z.sh"}
+	files, err := FilesWithin(".", given)
+
+	if !slices.Equal(files, []Path{"inside.sh", "missing/z.sh"}) || err == nil || strings.Count(err.Error(), "outside the repository") != 3 {
+		t.Errorf("got %q, %v", files, err)
+	}
 }
