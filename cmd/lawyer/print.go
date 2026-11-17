@@ -28,7 +28,7 @@ func printWarnings(warnings []string) {
 
 func printViolations(violations []lawyer.Violation, err error) int {
 	for _, violation := range violations {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", violation.Path, violation.Message)
+		fmt.Printf("%s: %s\n", violation.Path, violation.Message)
 	}
 	code := printError(err)
 

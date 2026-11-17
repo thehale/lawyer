@@ -143,8 +143,8 @@ a.sh: missing header
 b.yml: missing header
 `)
 
-	if got.code != 1 || got.stderr != expected {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got.code != 1 || got.stdout != expected {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -154,8 +154,8 @@ func TestStdinChecksOnlyTheListed(t *testing.T) {
 
 	got := invoke(t, "b.sh\n", append([]string{"check", "-"}, mine...)...)
 
-	if got.code != 1 || got.stderr != "b.sh: missing header\n" {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got.code != 1 || got.stdout != "b.sh: missing header\n" {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -169,8 +169,8 @@ src/a.sh: missing header
 src/b.sh: missing header
 `)
 
-	if got.code != 1 || got.stderr != expected {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got.code != 1 || got.stdout != expected {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -199,8 +199,8 @@ func TestPathsAfterTheEndOfOptionsAreChecked(t *testing.T) {
 	createProject(t, map[string]string{"--fix.sh": "echo\n"})
 	git(t, "", "init", "--quiet")
 
-	if got := invoke(t, "", append(append([]string{"check"}, mine...), "--", "--fix.sh")...); got.code != 1 || got.stderr != "--fix.sh: missing header\n" {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got := invoke(t, "", append(append([]string{"check"}, mine...), "--", "--fix.sh")...); got.code != 1 || got.stdout != "--fix.sh: missing header\n" {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -233,8 +233,8 @@ echo 2
 	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
 	content, _ := os.ReadFile("a.sh")
 
-	if check.stderr != "a.sh: years 2024, expected 2024-2026\n" || fix.code != 0 || !strings.HasPrefix(string(content), "# Copyright (c) 2024-2026 Joseph Hale\n") {
-		t.Errorf("check: %q; fix: exit %d, %q; file: %q", check.stderr, fix.code, fix.stderr, content)
+	if check.stdout != "a.sh: years 2024, expected 2024-2026\n" || fix.code != 0 || !strings.HasPrefix(string(content), "# Copyright (c) 2024-2026 Joseph Hale\n") {
+		t.Errorf("check: %q; fix: exit %d, %q; file: %q", check.stdout, fix.code, fix.stderr, content)
 	}
 }
 
@@ -280,8 +280,8 @@ a.sh: years 2024, expected 2024-%s
 new.sh: missing header
 `), this)
 
-	if got.stderr != expected {
-		t.Errorf("stderr %q", got.stderr)
+	if got.stdout != expected {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -305,8 +305,8 @@ edited.sh: years 2024, expected 2024-%[1]s
 new.sh: years 2024, expected %[1]s
 odd "name".sh: years 2024, expected 2024-%[1]s
 `), this)
-	if got.stderr != expected {
-		t.Errorf("stderr %q", got.stderr)
+	if got.stdout != expected {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -318,8 +318,8 @@ func TestUncommittedEditsCountInASubdirectory(t *testing.T) {
 	editBodies("edited.sh")
 	writeLicense(t)
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != fmt.Sprintf("edited.sh: years 2024, expected 2024-%s\n", this) {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stdout != fmt.Sprintf("edited.sh: years 2024, expected 2024-%s\n", this) {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -374,8 +374,8 @@ echo 1
 	writeLicense(t)
 	got := invoke(t, "", append([]string{"check", "--copyright-year", "2020-2021"}, mine...)...)
 
-	if got.stderr != "a.sh: years 2024, expected 2020-2021\n" {
-		t.Errorf("stderr %q", got.stderr)
+	if got.stdout != "a.sh: years 2024, expected 2020-2021\n" {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -396,8 +396,8 @@ func TestFixWritesAMissingLicense(t *testing.T) {
 	content, _ := os.ReadFile("LICENSE")
 	top := "Mozilla Public License Version 2.0\n"
 
-	if !strings.HasSuffix(check.stderr, "LICENSE: missing\n") || fix.stdout != "LICENSE: fixed\n" || !strings.HasPrefix(string(content), top) {
-		t.Errorf("check %q; fix %q; LICENSE %q", check.stderr, fix.stdout, content[:min(80, len(content))])
+	if !strings.HasSuffix(check.stdout, "LICENSE: missing\n") || fix.stdout != "LICENSE: fixed\n" || !strings.HasPrefix(string(content), top) {
+		t.Errorf("check %q; fix %q; LICENSE %q", check.stdout, fix.stdout, content[:min(80, len(content))])
 	}
 }
 
@@ -426,8 +426,8 @@ func TestSeveralLicensesReplaceThePlainOne(t *testing.T) {
 	again := invoke(t, "", args...)
 	_, kept := os.Stat("LICENSE")
 
-	if !strings.Contains(check.stderr, "LICENSE: not a file the --license expression calls for") || !strings.Contains(fix.stdout, "LICENSE: removed") || kept == nil || again.code != 0 {
-		t.Errorf("check %q; fix %q; check after: exit %d, %q", check.stderr, fix.stdout, again.code, again.stderr)
+	if !strings.Contains(check.stdout, "LICENSE: not a file the --license expression calls for") || !strings.Contains(fix.stdout, "LICENSE: removed") || kept == nil || again.code != 0 {
+		t.Errorf("check %q; fix %q; check after: exit %d, %q", check.stdout, fix.stdout, again.code, again.stderr)
 	}
 }
 
@@ -504,8 +504,8 @@ func TestALicenseWithoutAnOwnerLeavesTheOwnerRequired(t *testing.T) {
 func TestDuplicateLicenseFilesFail(t *testing.T) {
 	createProject(t, map[string]string{"LICENSE.md": "copy\n"})
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, "LICENSE: one of several files for MPL-2.0\nLICENSE.md: one of several files for MPL-2.0\n") {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stdout, "LICENSE: one of several files for MPL-2.0\nLICENSE.md: one of several files for MPL-2.0\n") {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -529,8 +529,8 @@ func TestFixNeverFollowsALicenseSymlink(t *testing.T) {
 	got := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
 	kept, _ := os.ReadFile(target)
 
-	if string(kept) != "keep\n" || !strings.Contains(got.stderr, "LICENSE: not a regular file") {
-		t.Errorf("target %q; exit %d, stderr %q", kept, got.code, got.stderr)
+	if string(kept) != "keep\n" || !strings.Contains(got.stdout, "LICENSE: not a regular file") {
+		t.Errorf("target %q; exit %d, stdout %q", kept, got.code, got.stdout)
 	}
 }
 
@@ -550,8 +550,8 @@ func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
 func TestOnlyLicenseNamesSkipTheHeader(t *testing.T) {
 	createProject(t, map[string]string{"LICENSE.sh": "echo\n", "COPYING-MIT.txt": "text\n"})
 
-	if got := invoke(t, "", append([]string{"check", "LICENSE.sh", "COPYING-MIT.txt"}, mine...)...); !strings.Contains(got.stderr, "LICENSE.sh: missing header") {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got := invoke(t, "", append([]string{"check", "LICENSE.sh", "COPYING-MIT.txt"}, mine...)...); !strings.Contains(got.stdout, "LICENSE.sh: missing header") {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -561,8 +561,8 @@ func TestShebangAfterAByteOrderMark(t *testing.T) {
 print()
 `)})
 
-	if got := invoke(t, "", append([]string{"check", "tool"}, mine...)...); !strings.Contains(got.stderr, "tool: missing header") {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got := invoke(t, "", append([]string{"check", "tool"}, mine...)...); !strings.Contains(got.stdout, "tool: missing header") {
+		t.Errorf("exit %d, stdout %q", got.code, got.stdout)
 	}
 }
 
@@ -581,8 +581,8 @@ func TestFixKeepsTheFileMode(t *testing.T) {
 func TestControlCharactersInNamesAreQuoted(t *testing.T) {
 	createProject(t, map[string]string{"evil\x1b[2J.sh": "echo\n"})
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, `"evil\x1b[2J.sh": missing header`) {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stdout, `"evil\x1b[2J.sh": missing header`) {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -618,8 +618,8 @@ func TestCommentsThatMentionCopyrightAreEdits(t *testing.T) {
 `)})
 	writeLicense(t)
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024, expected 2024-2025\n" {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stdout != "a.sh: years 2024, expected 2024-2025\n" {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -660,8 +660,8 @@ bad.sh
 ../outside.sh
 `), append([]string{"check", "-"}, mine...)...)
 
-	if got.code != 1 || !strings.Contains(got.stderr, "bad.sh: missing header") || !strings.Contains(got.stderr, "outside the repository") {
-		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	if got.code != 1 || !strings.Contains(got.stdout, "bad.sh: missing header") || !strings.Contains(got.stderr, "outside the repository") {
+		t.Errorf("exit %d, stdout %q, stderr %q", got.code, got.stdout, got.stderr)
 	}
 }
 
@@ -698,8 +698,8 @@ echo resolved
 `)})
 	writeLicense(t)
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024-2025, expected 2024-2026\n" {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stdout != "a.sh: years 2024-2025, expected 2024-2026\n" {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -719,8 +719,8 @@ func TestProseAfterAnIdentifierIsAnEdit(t *testing.T) {
 `)})
 	writeLicense(t)
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != "a.sh: years 2024, expected 2024-2025\n" {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stdout != "a.sh: years 2024, expected 2024-2025\n" {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
@@ -740,8 +740,8 @@ echo 2
 `)})
 	writeLicense(t)
 
-	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stderr, "a.sh: years 2024, expected 2024-2025") {
-		t.Errorf("stderr %q", got.stderr)
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); !strings.Contains(got.stdout, "a.sh: years 2024, expected 2024-2025") {
+		t.Errorf("stdout %q", got.stdout)
 	}
 }
 
