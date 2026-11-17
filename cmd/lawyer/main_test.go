@@ -496,7 +496,7 @@ func TestALicenseWithoutAnOwnerLeavesTheOwnerRequired(t *testing.T) {
 
 	got := invoke(t, "", "check")
 
-	if got.code != 2 || !strings.Contains(got.stderr, "an owner is required") || strings.Contains(got.stderr, "a license is required") {
+	if got.code != 2 || !strings.Contains(got.stderr, "--copyright-owner is required") || strings.Contains(got.stderr, "--license is required") {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
 }

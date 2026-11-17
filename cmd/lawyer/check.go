@@ -42,7 +42,7 @@ func parse(args []string, licensing lawyer.Licensing) (options, error) {
 	if chosen.declaration.Owner == "" || chosen.declaration.License == "" {
 		chosen.declaration = chosen.declaration.Or(lawyer.DeclarationFrom(licensing))
 	}
-	return chosen, errors.Join(err, chosen.declaration.Validate())
+	return chosen, errors.Join(err, validate(chosen.declaration))
 }
 
 func (o *options) take(args []string) ([]string, error) {
