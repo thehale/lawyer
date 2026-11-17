@@ -15,9 +15,15 @@ const usage = `Usage: lawyer check [--fix] [--copyright-owner OWNER] [--license 
        lawyer licenses
 
 check      Checks that files carry a copyright and SPDX header and that the
-           LICENSE matches, and --fix writes them.
+           LICENSE matches, and --fix writes them. The owner and license
+           default to what the LICENSE files name.
 languages  Lists the languages lawyer puts headers in.
 licenses   Lists the SPDX ids --license accepts.
+
+Examples:
+  lawyer check --copyright-owner "Your Name" --license MPL-2.0 --fix
+  lawyer check --exclude '**/vendor/**'
+  git diff --name-only --diff-filter=d main | lawyer check -
 `
 
 func isHelp(arg string) bool {
