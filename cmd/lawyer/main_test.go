@@ -133,6 +133,14 @@ func TestHelpIsOnEveryCommand(t *testing.T) {
 	}
 }
 
+func TestVersionIsACommand(t *testing.T) {
+	for _, args := range [][]string{{"version"}, {"--version"}} {
+		if got := invoke(t, "", args...); got.code != 0 || got.stdout != "dev\n" {
+			t.Errorf("%q: exit %d, stdout %q", args, got.code, got.stdout)
+		}
+	}
+}
+
 func TestWalkReportsEveryFailure(t *testing.T) {
 	createProject(t, map[string]string{"a.sh": "echo\n", "b.yml": "x: 1\n", "c.sh": headed, "vendor/d.sh": "echo\n", "e.json": "{}\n", "COPYING.md": "text\n"})
 	git(t, "", "init", "--quiet")

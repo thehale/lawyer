@@ -26,7 +26,7 @@ func run(args []string) int {
 		return withoutArguments(command, rest, listLicenses)
 	case "", "help", "-h", "--help":
 		return printUsage()
-	case "--version":
+	case "version", "--version":
 		fmt.Println(version)
 		return 0
 	default:
