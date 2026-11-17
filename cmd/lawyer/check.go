@@ -18,8 +18,7 @@ func runCheck(args []string) int {
 	if err == nil {
 		return options.run(repository)
 	} else {
-		fmt.Fprintf(os.Stderr, "lawyer: %v\n\n%s", err, usage)
-		return 2
+		return misuse(err)
 	}
 }
 
