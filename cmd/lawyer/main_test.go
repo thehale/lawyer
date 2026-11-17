@@ -116,7 +116,7 @@ var headed = text(`
 `)
 
 func TestUsage(t *testing.T) {
-	for _, args := range [][]string{{"check"}, {"check", "-x"}, {"check", "--license", "MIT"}, {"check", "--bogus"}, {"check", "--license"}, append([]string{"check", "--fix=never"}, mine...), append([]string{"check", "--license", "MIT"}, mine...)} {
+	for _, args := range [][]string{{"bogus"}, {"languages", "extra"}, {"check"}, {"check", "-x"}, {"check", "--license", "MIT"}, {"check", "--bogus"}, {"check", "--license"}, append([]string{"check", "--fix=never"}, mine...), append([]string{"check", "--license", "MIT"}, mine...)} {
 		if got := invoke(t, "", args...); got.code != 2 || !strings.Contains(got.stderr, "Usage:") {
 			t.Errorf("%q: exit %d, stderr %q", args, got.code, got.stderr)
 		}

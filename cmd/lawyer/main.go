@@ -21,24 +21,26 @@ func run(args []string) int {
 	case "check":
 		return runCheck(rest)
 	case "languages":
-		return withoutArguments(rest, listLanguages)
+		return withoutArguments(command, rest, listLanguages)
 	case "licenses":
-		return withoutArguments(rest, listLicenses)
+		return withoutArguments(command, rest, listLicenses)
 	case "", "help", "-h", "--help":
 		return printUsage()
 	case "--version":
 		fmt.Println(version)
 		return 0
 	default:
-		fmt.Fprint(os.Stderr, usage)
-		return 2
+		return misuse(fmt.Errorf("unknown command %s", command))
 	}
 }
 
-func withoutArguments(args []string, list func() int) int {
-	if len(args) == 1 && isHelp(args[0]) {
-		return printUsage()
-	} else {
+func withoutArguments(command string, args []string, list func() int) int {
+	switch {
+	case len(args) == 0:
 		return list()
+	case len(args) == 1 && isHelp(args[0]):
+		return printUsage()
+	default:
+		return misuse(fmt.Errorf("%s takes no arguments", command))
 	}
 }
