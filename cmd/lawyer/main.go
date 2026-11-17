@@ -15,14 +15,16 @@ func main() {
 }
 
 func run(args []string) int {
-	switch append(args, "")[0] {
+	command, rest := append(args, "")[0], args[min(1, len(args)):]
+
+	switch command {
 	case "check":
-		return runCheck(args[1:])
+		return runCheck(rest)
 	case "languages":
-		return listLanguages()
+		return withoutArguments(rest, listLanguages)
 	case "licenses":
-		return listLicenses()
-	case "--help", "-h", "help":
+		return withoutArguments(rest, listLicenses)
+	case "", "help", "-h", "--help":
 		return printUsage()
 	case "--version":
 		fmt.Println(version)
@@ -30,5 +32,13 @@ func run(args []string) int {
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		return 2
+	}
+}
+
+func withoutArguments(args []string, list func() int) int {
+	if len(args) == 1 && isHelp(args[0]) {
+		return printUsage()
+	} else {
+		return list()
 	}
 }

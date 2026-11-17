@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 )
 
 const usage = `Usage: lawyer check [--fix] [--copyright-owner OWNER] [--license EXPRESSION]
@@ -18,6 +19,10 @@ check      Checks that files carry a copyright and SPDX header and that the
 languages  Lists the languages lawyer puts headers in.
 licenses   Lists the SPDX ids --license accepts.
 `
+
+func isHelp(arg string) bool {
+	return slices.Contains([]string{"-h", "--help"}, arg)
+}
 
 func printUsage() int {
 	fmt.Print(usage)

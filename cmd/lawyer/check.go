@@ -15,14 +15,18 @@ func runCheck(args []string) int {
 	repository := lawyer.NewRepository(".")
 	options, err := parse(args, repository.Licensing())
 
-	if err == nil {
+	switch {
+	case options.help:
+		return printUsage()
+	case err == nil:
 		return options.run(repository)
-	} else {
+	default:
 		return misuse(err)
 	}
 }
 
 type options struct {
+	help        bool
 	fix         bool
 	declaration lawyer.Declaration
 	excludes    []lawyer.Glob
@@ -49,6 +53,8 @@ func (o *options) take(args []string) ([]string, error) {
 		o.paths = append(o.paths, value)
 	case "--":
 		o.paths, rest = append(o.paths, rest...), nil
+	case "-h", "--help":
+		o.help = true
 	case "--fix":
 		o.fix = true
 	case "--exclude":
