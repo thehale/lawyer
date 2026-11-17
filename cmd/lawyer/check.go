@@ -47,6 +47,8 @@ func (o *options) take(args []string) ([]string, error) {
 	switch flag {
 	case "":
 		o.paths = append(o.paths, value)
+	case "--":
+		o.paths, rest = append(o.paths, rest...), nil
 	case "--fix":
 		o.fix = true
 	case "--exclude":

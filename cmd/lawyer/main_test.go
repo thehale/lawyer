@@ -185,6 +185,15 @@ func TestFixListsWhatChanged(t *testing.T) {
 	}
 }
 
+func TestPathsAfterTheEndOfOptionsAreChecked(t *testing.T) {
+	createProject(t, map[string]string{"--fix.sh": "echo\n"})
+	git(t, "", "init", "--quiet")
+
+	if got := invoke(t, "", append(append([]string{"check"}, mine...), "--", "--fix.sh")...); got.code != 1 || got.stderr != "--fix.sh: missing header\n" {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestMissingFileFails(t *testing.T) {
 	createProject(t, nil)
 

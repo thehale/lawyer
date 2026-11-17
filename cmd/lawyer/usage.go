@@ -9,7 +9,7 @@ import (
 )
 
 const usage = `Usage: lawyer check [--fix] [--copyright-owner OWNER] [--license EXPRESSION]
-                    [--copyright-year YEARS] [--exclude GLOB]... [PATH... | -]
+                    [--copyright-year YEARS] [--exclude GLOB]... [--] [PATH... | -]
        lawyer languages
        lawyer licenses
 
