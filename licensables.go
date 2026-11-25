@@ -34,14 +34,8 @@ func (l Licensables) All() iter.Seq2[Licensable, error] {
 	return func(yield func(Licensable, error) bool) {
 		files, err := l.files()
 		proceed := err == nil || yield(Licensable{}, err)
-		for index := 0; proceed && index < len(files); index++ {
-			licensable, isLicensable, err := licensableAt(l.repository, files[index])
-			switch {
-			case err != nil:
-				proceed = yield(Licensable{}, err)
-			case isLicensable:
-				proceed = yield(licensable, nil)
-			}
+		for files := range slices.Chunk(files, batchSize) {
+			proceed = proceed && yieldEach(readBatch(l.repository, files), yield)
 		}
 	}
 }

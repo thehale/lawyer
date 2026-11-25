@@ -24,8 +24,9 @@ func (n Notice) IsComplete() bool {
 func init() {
 	Register(func(lines []string) []Claim {
 		var notices []Notice
+		text := spdx.TextOf(lines)
 		for _, standard := range spdx.StandardNotices() {
-			if first, last, found := standard.LinesIn(lines); found {
+			if first, last, found := standard.LinesIn(text); found {
 				notices = append(notices, Notice{span: span{First: first, Last: last}, License: standard.ID.Expression()})
 			}
 		}

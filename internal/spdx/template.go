@@ -131,6 +131,18 @@ func (t template) Searcher() *regexp.Regexp {
 	return regexp.MustCompile("(?i)(?:^| )" + t.source(nil, "") + "(?: |$)")
 }
 
+// LongestWords are the longest literal words outside any optional group,
+// which every text the template matches holds.
+func (t template) LongestWords() string {
+	var longest string
+	for _, each := range t.parts {
+		if words, isLiteral := each.(literal); isLiteral && len(words.words) > len(longest) {
+			longest = words.words
+		}
+	}
+	return longest
+}
+
 // WithOptionalCopyright makes a top-level copyright variable optional, along
 // with the "Copyright" or "Copyright (c)" before it.
 func (t template) WithOptionalCopyright() template {

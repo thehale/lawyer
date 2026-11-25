@@ -266,6 +266,62 @@ new.sh: missing header
 	}
 }
 
+var headed2024 = text(`
+# Copyright (c) 2024 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
+echo 1
+`)
+
+func TestUncommittedEditsDateOnlyTheirOwnFile(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"edited.sh": headed2024, "kept.sh": headed2024, `odd "name".sh`: headed2024})
+	editBodies("edited.sh", `odd "name".sh`, "new.sh")
+	writeLicense(t)
+
+	got := invoke(t, "", append([]string{"check"}, mine...)...)
+
+	expected := fmt.Sprintf(text(`
+edited.sh: years 2024, expected 2024-%[1]s
+new.sh: years 2024, expected %[1]s
+odd "name".sh: years 2024, expected 2024-%[1]s
+`), this)
+	if got.stderr != expected {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func TestUncommittedEditsCountInASubdirectory(t *testing.T) {
+	createRepository(t)
+	_ = os.Mkdir("sub", 0o755)
+	commit(t, "2024", map[string]string{"sub/edited.sh": headed2024, "sub/kept.sh": headed2024})
+	t.Chdir("sub")
+	editBodies("edited.sh")
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stderr != fmt.Sprintf("edited.sh: years 2024, expected 2024-%s\n", this) {
+		t.Errorf("stderr %q", got.stderr)
+	}
+}
+
+func editBodies(paths ...string) {
+	for _, path := range paths {
+		_ = os.WriteFile(path, []byte(headed2024+"echo 2\n"), 0o644)
+	}
+}
+
+func TestRenamedFilesKeepTheirYears(t *testing.T) {
+	createRepository(t)
+	commit(t, "2024", map[string]string{"old.sh": headed2024})
+	_ = os.Rename("old.sh", "new.sh")
+	commit(t, "2025", nil)
+	writeLicense(t)
+
+	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
+		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
 func TestShallowClonesOnlyCheckYearsArePast(t *testing.T) {
 	createRepository(t)
 	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})

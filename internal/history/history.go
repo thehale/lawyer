@@ -15,7 +15,8 @@ import (
 type History struct {
 	root paths.Path
 	// Gap is why the history can't date every edit.
-	Gap string
+	Gap   string
+	dated map[paths.Path]years.Range
 }
 
 func Of(root paths.Path) History {
@@ -35,9 +36,14 @@ func (h History) IsEveryEditDated() bool {
 }
 
 func (h History) EditYears(path paths.Path) years.Range {
-	if h.IsEveryEditDated() {
+	dated, isDated := h.dated[path]
+
+	switch {
+	case isDated:
+		return dated
+	case h.IsEveryEditDated():
 		return rangeOf(append(h.committedYears(path), h.uncommittedYears(path)...))
-	} else {
+	default:
 		return years.This()
 	}
 }
@@ -59,7 +65,11 @@ func rangeOf(edits []int) years.Range {
 }
 
 func (h History) dirtyYears() []int {
-	if h.output("status", "--porcelain") != "" {
+	return thisYearIf(h.output("status", "--porcelain") != "")
+}
+
+func thisYearIf(isEdited bool) []int {
+	if isEdited {
 		return []int{years.This().Last}
 	} else {
 		return nil
@@ -85,10 +95,5 @@ func (h History) committedYears(path paths.Path) []int {
 
 func (h History) uncommittedYears(path paths.Path) []int {
 	diff := h.output("diff", "HEAD", "--unified=0", "--text", "--no-color", "--no-ext-diff", "--", string(path))
-
-	if isSubstantive(diff) || h.output("ls-files", "--", string(path)) == "" {
-		return []int{years.This().Last}
-	} else {
-		return nil
-	}
+	return thisYearIf(isSubstantive(diff) || h.output("ls-files", "--", string(path)) == "")
 }
