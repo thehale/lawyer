@@ -24,11 +24,21 @@ func byID(t *testing.T, id spdx.ID) spdx.License {
 	return license
 }
 
-func TestRenderedLicensesPass(t *testing.T) {
+func TestRenderedLicensesPassTheirTemplates(t *testing.T) {
+	expectations := []copyright.Expectation{
+		expectation,
+		{Owner: "Acme, Inc. & Co.", Years: years.Exactly(years.Range{First: 2020, Last: 2026})},
+	}
 	for _, id := range spdx.IDs() {
 		license := byID(t, id)
-		if violations := file(file("").canonical(license, expectation)).violations(license, expectation); violations != nil {
-			t.Errorf("%s: %q", id, violations)
+		for _, expected := range expectations {
+			rendered := file(file("").canonical(license, expected))
+			if differences := rendered.differences(license, expected); differences != nil {
+				t.Errorf("%s for %s: %q", id, expected.Owner, differences)
+			}
+			if rendered.content != rendered.canonical(license, expected) {
+				t.Errorf("%s for %s: rendering it again changes it", id, expected.Owner)
+			}
 		}
 	}
 }

@@ -59,6 +59,16 @@ func (f licenseFile) license() (spdx.License, bool) {
 // violations are how the file falls short of holding license as expectation
 // calls for.
 func (f licenseFile) violations(license spdx.License, expectation copyright.Expectation) []string {
+	if f.content == f.canonical(license, expectation) {
+		return nil
+	} else {
+		return f.differences(license, expectation)
+	}
+}
+
+// differences are how the file's text, read against license's template, falls
+// short of expectation.
+func (f licenseFile) differences(license spdx.License, expectation copyright.Expectation) []string {
 	written, owned := license.OwnerYears(f.content, expectation.Owner)
 	slotted := license.HasCopyrightSlot()
 
