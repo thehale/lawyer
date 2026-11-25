@@ -7,12 +7,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 var (
-	punctuation = regexp.MustCompile(`[^\pL\pN]+`)
-	repeat      = regexp.MustCompile(`\{(\d+),(\d+)\}`)
-	secure      = regexp.MustCompile(`\bhttps\b`)
+	repeat = regexp.MustCompile(`\{(\d+),(\d+)\}`)
+	secure = regexp.MustCompile(`\bhttps\b`)
 
 	classes            = regexp.MustCompile(`\[(?:\\.|[^\]])*\]|\{\d*,?\d*\}|(?:\\.|[^\[{])+|\{`)
 	escapedPunctuation = regexp.MustCompile(`\\[^\w\s]`)
@@ -22,8 +22,12 @@ var (
 
 func wordsOf(text string) string {
 	text = strings.ReplaceAll(strings.ToLower(text), "©", " c ")
-	words := strings.TrimSpace(punctuation.ReplaceAllString(text, " "))
+	words := strings.Join(strings.FieldsFunc(text, isPunctuation), " ")
 	return secure.ReplaceAllString(words, "http")
+}
+
+func isPunctuation(character rune) bool {
+	return !unicode.IsLetter(character) && !unicode.IsNumber(character)
 }
 
 func tolerantPattern(match string) string {
