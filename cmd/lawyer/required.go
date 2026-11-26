@@ -17,8 +17,8 @@ func validate(declaration lawyer.Declaration) error {
 	return cmp.Or(errors.Join(owner, license), declaration.Validate())
 }
 
-func require(flag, value, fallback string) error {
-	if value == "" {
+func require(flag, argument, fallback string) error {
+	if argument == "" {
 		return fmt.Errorf("%s is required, as no LICENSE file %s", flag, fallback)
 	} else {
 		return nil
