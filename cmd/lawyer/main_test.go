@@ -53,6 +53,10 @@ func createProject(t *testing.T, files map[string]string) {
 	t.Chdir(t.TempDir())
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(must(os.Getwd())))
 	writeLicense(t)
+	writeFiles(t, files)
+}
+
+func writeFiles(t *testing.T, files map[string]string) {
 	for path, content := range files {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -72,11 +76,7 @@ func git(t *testing.T, date string, args ...string) {
 }
 
 func commit(t *testing.T, year string, files map[string]string) {
-	for path, content := range files {
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
+	writeFiles(t, files)
 	git(t, year+"-06-01T12:00:00Z", "add", ".")
 	git(t, year+"-06-01T12:00:00Z", "commit", "--quiet", "--message", year)
 }
@@ -220,25 +220,27 @@ func TestMissingFileFails(t *testing.T) {
 	}
 }
 
-func TestYearsSpanTheEdits(t *testing.T) {
-	createRepository(t)
-	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
-	commit(t, "2025", map[string]string{"a.sh": text(`
+var headed2024 = text(`
 # Copyright (c) 2024 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
 echo 1
-`)})
-	commit(t, "2026", map[string]string{"a.sh": text(`
+`)
+
+var edited2024 = text(`
 # Copyright (c) 2024 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
 echo 2
-`)})
+`)
+
+func TestYearsSpanTheEdits(t *testing.T) {
+	createRepository(t)
+	addHeaderIn2025(t)
+	commit(t, "2026", map[string]string{"a.sh": edited2024})
 	writeLicense(t)
 
-	check := invoke(t, "", append([]string{"check"}, mine...)...)
-	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	check, fix := checkThenFix(t)
 	content, _ := os.ReadFile("a.sh")
 
 	if check.stdout != "a.sh: years 2024, expected 2024-2026\n" || fix.code != 0 || !strings.HasPrefix(string(content), "# Copyright (c) 2024-2026 Joseph Hale\n") {
@@ -246,15 +248,15 @@ echo 2
 	}
 }
 
+func checkThenFix(t *testing.T) (check, fix result) {
+	check = invoke(t, "", append([]string{"check"}, mine...)...)
+	fix = invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	return check, fix
+}
+
 func TestHeaderOnlyCommitsAreNotEdits(t *testing.T) {
 	createRepository(t)
-	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
-	commit(t, "2025", map[string]string{"a.sh": text(`
-# Copyright (c) 2024 Joseph Hale
-# SPDX-License-Identifier: MPL-2.0
-
-echo 1
-`)})
+	addHeaderIn2025(t)
 	writeLicense(t)
 
 	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.code != 0 {
@@ -262,27 +264,18 @@ echo 1
 	}
 }
 
+func addHeaderIn2025(t *testing.T) {
+	commit(t, "2024", map[string]string{"a.sh": "echo 1\n"})
+	commit(t, "2025", map[string]string{"a.sh": headed2024})
+}
+
 func TestUncommittedEditsCountAsThisYear(t *testing.T) {
 	createRepository(t)
-	commit(t, "2024", map[string]string{"a.sh": text(`
-# Copyright (c) 2024 Joseph Hale
-# SPDX-License-Identifier: MPL-2.0
-
-echo 1
-`)})
-	project := map[string]string{"a.sh": text(`
-# Copyright (c) 2024 Joseph Hale
-# SPDX-License-Identifier: MPL-2.0
-
-echo 2
-`), "new.sh": "echo\n"}
-	for path, content := range project {
-		_ = os.WriteFile(path, []byte(content), 0o644)
-	}
-
+	commit(t, "2024", map[string]string{"a.sh": headed2024})
+	writeFiles(t, map[string]string{"a.sh": edited2024, "new.sh": "echo\n"})
 	writeLicense(t)
-	got := invoke(t, "", append([]string{"check"}, mine...)...)
 
+	got := invoke(t, "", append([]string{"check"}, mine...)...)
 	expected := fmt.Sprintf(text(`
 a.sh: years 2024, expected 2024-%s
 new.sh: missing header
@@ -292,13 +285,6 @@ new.sh: missing header
 		t.Errorf("stdout %q", got.stdout)
 	}
 }
-
-var headed2024 = text(`
-# Copyright (c) 2024 Joseph Hale
-# SPDX-License-Identifier: MPL-2.0
-
-echo 1
-`)
 
 func TestUncommittedEditsDateOnlyTheirOwnFile(t *testing.T) {
 	createRepository(t)
@@ -399,8 +385,7 @@ func TestFixWritesAMissingLicense(t *testing.T) {
 	createProject(t, nil)
 	_ = os.Remove("LICENSE")
 
-	check := invoke(t, "", append([]string{"check"}, mine...)...)
-	fix := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
+	check, fix := checkThenFix(t)
 	content, _ := os.ReadFile("LICENSE")
 	top := "Mozilla Public License Version 2.0\n"
 
@@ -526,13 +511,8 @@ func TestUnknownLicenseIsAUsageError(t *testing.T) {
 }
 
 func TestFixNeverFollowsALicenseSymlink(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "target")
 	createProject(t, nil)
-	_ = os.Remove("LICENSE")
-	_ = os.WriteFile(target, []byte("keep\n"), 0o644)
-	if err := os.Symlink(target, "LICENSE"); err != nil {
-		t.Fatal(err)
-	}
+	target := linkLicense(t, "keep\n")
 
 	got := invoke(t, "", append([]string{"check", "--fix"}, mine...)...)
 	kept, _ := os.ReadFile(target)
@@ -540,6 +520,16 @@ func TestFixNeverFollowsALicenseSymlink(t *testing.T) {
 	if string(kept) != "keep\n" || !strings.Contains(got.stdout, "LICENSE: not a regular file") {
 		t.Errorf("target %q; exit %d, stdout %q", kept, got.code, got.stdout)
 	}
+}
+
+func linkLicense(t *testing.T, content string) (target string) {
+	target = filepath.Join(t.TempDir(), "target")
+	_ = os.WriteFile(target, []byte(content), 0o644)
+	_ = os.Remove("LICENSE")
+	if err := os.Symlink(target, "LICENSE"); err != nil {
+		t.Fatal(err)
+	}
+	return target
 }
 
 func TestFixRefusesPathsOutsideTheWorkingDirectory(t *testing.T) {
@@ -681,23 +671,17 @@ func TestMergeResolutionsAreEdits(t *testing.T) {
 
 echo base
 `)})
-	git(t, "", "branch", "--quiet", "side")
-	commit(t, "2025", map[string]string{"a.sh": text(`
+	mergeConflictingEditsIn2025(t, map[string]string{"a.sh": text(`
 # Copyright (c) 2024-2025 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
 echo main
-`)})
-	git(t, "", "checkout", "--quiet", "side")
-	commit(t, "2025", map[string]string{"a.sh": text(`
+`)}, map[string]string{"a.sh": text(`
 # Copyright (c) 2024-2025 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
 echo side
 `)})
-	git(t, "", "checkout", "--quiet", "-")
-	merge := exec.Command("git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "merge", "--quiet", "side")
-	_ = merge.Run()
 	commit(t, "2026", map[string]string{"a.sh": text(`
 # Copyright (c) 2024-2025 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
@@ -709,6 +693,15 @@ echo resolved
 	if got := invoke(t, "", append([]string{"check"}, mine...)...); got.stdout != "a.sh: years 2024-2025, expected 2024-2026\n" {
 		t.Errorf("stdout %q", got.stdout)
 	}
+}
+
+func mergeConflictingEditsIn2025(t *testing.T, ours, theirs map[string]string) {
+	git(t, "", "branch", "--quiet", "side")
+	commit(t, "2025", ours)
+	git(t, "", "checkout", "--quiet", "side")
+	commit(t, "2025", theirs)
+	git(t, "", "checkout", "--quiet", "-")
+	_ = exec.Command("git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "merge", "--quiet", "side").Run()
 }
 
 func TestProseAfterAnIdentifierIsAnEdit(t *testing.T) {
