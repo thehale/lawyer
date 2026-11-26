@@ -40,10 +40,10 @@ func printViolations(violations []lawyer.Violation, err error) int {
 }
 
 func printError(err error) int {
-	if err != nil {
+	if err == nil {
+		return 0
+	} else {
 		fmt.Fprintf(os.Stderr, "lawyer: %v\n", err)
 		return 1
-	} else {
-		return 0
 	}
 }
