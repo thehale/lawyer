@@ -46,11 +46,11 @@ func parse(args []string, licensing lawyer.Licensing) (options, error) {
 }
 
 func (o *options) take(args []string) ([]string, error) {
-	flag, value, rest, err := nextOption(args)
+	flag, argument, rest, err := nextOption(args)
 
 	switch flag {
 	case "":
-		o.paths = append(o.paths, value)
+		o.paths = append(o.paths, argument)
 	case "--":
 		o.paths, rest = append(o.paths, rest...), nil
 	case "-h", "--help":
@@ -58,13 +58,13 @@ func (o *options) take(args []string) ([]string, error) {
 	case "--fix":
 		o.fix = true
 	case "--exclude":
-		o.excludes = append(o.excludes, lawyer.Glob(value))
+		o.excludes = append(o.excludes, lawyer.Glob(argument))
 	case "--copyright-owner":
-		err = errors.Join(err, set(&o.declaration.Owner, flag, value))
+		err = errors.Join(err, set(&o.declaration.Owner, flag, argument))
 	case "--license":
-		err = errors.Join(err, set(&o.declaration.License, flag, value))
+		err = errors.Join(err, set(&o.declaration.License, flag, argument))
 	case "--copyright-year":
-		err = errors.Join(err, set(&o.declaration.Years, flag, value))
+		err = errors.Join(err, set(&o.declaration.Years, flag, argument))
 	default:
 		err = fmt.Errorf("unknown option %s", flag)
 	}
