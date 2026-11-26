@@ -70,8 +70,8 @@ func writeFiles(t *testing.T, files map[string]string) {
 func git(t *testing.T, date string, args ...string) {
 	command := exec.Command("git", append([]string{"-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false"}, args...)...)
 	command.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, output)
+	if messages, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, messages)
 	}
 }
 
@@ -569,10 +569,10 @@ func TestFixKeepsTheFileMode(t *testing.T) {
 	_ = os.Chmod("run.sh", 0o750)
 
 	invoke(t, "", append([]string{"check", "--fix", "run.sh"}, mine...)...)
-	info, _ := os.Stat("run.sh")
+	mode := must(os.Stat("run.sh")).Mode()
 
-	if info.Mode().Perm() != 0o750 {
-		t.Errorf("mode %v", info.Mode())
+	if mode.Perm() != 0o750 {
+		t.Errorf("mode %v", mode)
 	}
 }
 
