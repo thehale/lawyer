@@ -344,9 +344,7 @@ func TestShallowClonesOnlyCheckYearsArePast(t *testing.T) {
 
 echo 2
 `)})
-	origin := must(os.Getwd())
-	t.Chdir(t.TempDir())
-	git(t, "", "clone", "--quiet", "--depth=1", "file://"+origin, ".")
+	cloneShallow(t)
 	writeLicense(t)
 
 	got := invoke(t, "", append([]string{"check"}, mine...)...)
@@ -354,6 +352,12 @@ echo 2
 	if got.code != 0 || got.stderr != "lawyer: this clone is shallow, so years are only checked for being in the past\n" {
 		t.Errorf("exit %d, stderr %q", got.code, got.stderr)
 	}
+}
+
+func cloneShallow(t *testing.T) {
+	origin := must(os.Getwd())
+	t.Chdir(t.TempDir())
+	git(t, "", "clone", "--quiet", "--depth=1", "file://"+origin, ".")
 }
 
 func TestGivenYearsOverrideHistory(t *testing.T) {
